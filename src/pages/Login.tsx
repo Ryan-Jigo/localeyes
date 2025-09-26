@@ -55,33 +55,32 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-secondary-light">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-hero opacity-90"></div>
-        <div className="relative z-10 px-4 py-12 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-4xl text-center">
-            <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">
-              LOCALEYES
-            </h1>
-            <p className="mt-6 text-xl leading-8 text-white/90">
-              Empowering communities to report local issues and connect with authorities for swift resolution.
-            </p>
-            <div className="mt-8">
-              <img
-                src={heroImage}
-                alt="Citizens reporting community issues"
-                className="mx-auto rounded-2xl shadow-2xl max-w-2xl w-full"
-              />
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen relative">
+      {/* Background Image */}
+      <div className="absolute inset-0">
+        <img
+          src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
+          alt="Beautiful coastal community with waterways and modern architecture"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/40"></div>
       </div>
 
-      {/* Login Form */}
-      <div className="relative -mt-20 px-4 pb-20 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-md">
-          <Card className="shadow-lg border-0 bg-card/95 backdrop-blur-sm">
+      {/* Content */}
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        {/* Hero Section */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">
+            LOCALEYES
+          </h1>
+          <p className="mt-6 text-xl leading-8 text-white/90 max-w-2xl mx-auto">
+            Empowering communities to report local issues and connect with authorities for swift resolution.
+          </p>
+        </div>
+
+        {/* Login Form */}
+        <div className="w-full max-w-md">
+          <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-md">
             <CardHeader className="space-y-1 text-center">
               <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
               <CardDescription>
@@ -142,88 +141,95 @@ export default function Login() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fillDemoCredentials('citizen')}
-                  className="h-auto p-3 flex flex-col items-center gap-2"
-                >
-                  <Users className="h-5 w-5 text-primary" />
-                  <div>
-                    <div className="font-medium">Citizen</div>
-                    <Badge variant="secondary" className="text-xs">Demo User</Badge>
-                  </div>
-                </Button>
-              </div>
+              {/* Demo Accounts Section */}
+              <div className="space-y-4">
+                {/* Citizen Account */}
+                <div className="text-center">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Citizen Account</h4>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fillDemoCredentials('citizen')}
+                    className="w-full h-auto p-4 flex items-center gap-3"
+                  >
+                    <Users className="h-6 w-6 text-primary" />
+                    <div className="text-left">
+                      <div className="font-medium">Citizen Demo</div>
+                      <div className="text-xs text-muted-foreground">Report community issues</div>
+                    </div>
+                  </Button>
+                </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fillDemoCredentials('authority', 'PWD')}
-                  className="h-auto p-3 flex flex-col items-center gap-2"
-                >
-                  <Shield className="h-5 w-5 text-secondary" />
-                  <div>
-                    <div className="font-medium">Authority</div>
-                    <Badge variant="secondary" className="text-xs">PWD</Badge>
-                  </div>
-                </Button>
+                {/* Authority Accounts */}
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-3 text-center">Authority Accounts</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fillDemoCredentials('authority', 'PWD')}
+                      className="h-auto p-3 flex flex-col items-center gap-2"
+                    >
+                      <Shield className="h-4 w-4 text-secondary" />
+                      <div className="text-center">
+                        <div className="font-medium text-xs">PWD</div>
+                        <div className="text-xs text-muted-foreground">Public Works</div>
+                      </div>
+                    </Button>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fillDemoCredentials('authority', 'Water')}
-                  className="h-auto p-3 flex flex-col items-center gap-2"
-                >
-                  <Shield className="h-5 w-5 text-secondary" />
-                  <div>
-                    <div className="font-medium">Authority</div>
-                    <Badge variant="secondary" className="text-xs">Water</Badge>
-                  </div>
-                </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fillDemoCredentials('authority', 'Water')}
+                      className="h-auto p-3 flex flex-col items-center gap-2"
+                    >
+                      <Shield className="h-4 w-4 text-secondary" />
+                      <div className="text-center">
+                        <div className="font-medium text-xs">Water</div>
+                        <div className="text-xs text-muted-foreground">Water Supply</div>
+                      </div>
+                    </Button>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fillDemoCredentials('authority', 'KSEB')}
-                  className="h-auto p-3 flex flex-col items-center gap-2"
-                >
-                  <Shield className="h-5 w-5 text-secondary" />
-                  <div>
-                    <div className="font-medium">Authority</div>
-                    <Badge variant="secondary" className="text-xs">KSEB</Badge>
-                  </div>
-                </Button>
-              </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fillDemoCredentials('authority', 'KSEB')}
+                      className="h-auto p-3 flex flex-col items-center gap-2"
+                    >
+                      <Shield className="h-4 w-4 text-secondary" />
+                      <div className="text-center">
+                        <div className="font-medium text-xs">KSEB</div>
+                        <div className="text-xs text-muted-foreground">Electricity</div>
+                      </div>
+                    </Button>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fillDemoCredentials('authority', 'Waste Management')}
-                  className="h-auto p-3 flex flex-col items-center gap-2"
-                >
-                  <Shield className="h-5 w-5 text-secondary" />
-                  <div>
-                    <div className="font-medium">Authority</div>
-                    <Badge variant="secondary" className="text-xs">Waste Mgmt</Badge>
-                  </div>
-                </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fillDemoCredentials('authority', 'Waste Management')}
+                      className="h-auto p-3 flex flex-col items-center gap-2"
+                    >
+                      <Shield className="h-4 w-4 text-secondary" />
+                      <div className="text-center">
+                        <div className="font-medium text-xs">Waste</div>
+                        <div className="text-xs text-muted-foreground">Waste Mgmt</div>
+                      </div>
+                    </Button>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fillDemoCredentials('authority', 'Other')}
-                  className="h-auto p-3 flex flex-col items-center gap-2"
-                >
-                  <Shield className="h-5 w-5 text-secondary" />
-                  <div>
-                    <div className="font-medium">Authority</div>
-                    <Badge variant="secondary" className="text-xs">Other</Badge>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fillDemoCredentials('authority', 'Other')}
+                      className="h-auto p-3 flex flex-col items-center gap-2 col-span-2"
+                    >
+                      <Shield className="h-4 w-4 text-secondary" />
+                      <div className="text-center">
+                        <div className="font-medium text-xs">Other Department</div>
+                        <div className="text-xs text-muted-foreground">General Issues</div>
+                      </div>
+                    </Button>
                   </div>
-                </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
