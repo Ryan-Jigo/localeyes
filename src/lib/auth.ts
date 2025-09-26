@@ -13,18 +13,10 @@ export interface AuthState {
 
 class AuthService {
   private storageKey = 'localeyes_auth';
+  private userStorageKey = 'localeyes_registered_users';
 
   // Mock users for demo - in real app this would be API calls
   private mockUsers: Record<string, { password: string; user: User }> = {
-    'citizen@example.com': {
-      password: 'password123',
-      user: {
-        id: '1',
-        email: 'citizen@example.com',
-        role: 'user',
-        name: 'John Citizen'
-      }
-    },
     'pwd@kseb.localeyes.com': {
       password: 'authority123',
       user: {
@@ -80,7 +72,16 @@ class AuthService {
   login(email: string, password: string): Promise<AuthState> {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        const userData = this.mockUsers[email.toLowerCase()];
+        const normalizedEmail = email.toLowerCase();
+
+        // First, check registered users stored in localStorage
+        const registeredUsers = this.getRegisteredUsers();
+        let userData = registeredUsers[normalizedEmail];
+
+        // If not found, fall back to mock authority accounts
+        if (!userData) {
+          userData = this.mockUsers[normalizedEmail];
+        }
         
         if (!userData || userData.password !== password) {
           reject(new Error('Invalid credentials'));
@@ -114,6 +115,48 @@ class AuthService {
 
   isValidToken(token: string): boolean {
     return token?.startsWith('mock_token_') || false;
+  }
+
+  private getRegisteredUsers(): Record<string, { password: string; user: User }> {
+    try {
+      const raw = localStorage.getItem(this.userStorageKey);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  private saveRegisteredUsers(users: Record<string, { password: string; user: User }>): void {
+    localStorage.setItem(this.userStorageKey, JSON.stringify(users));
+  }
+
+  register(email: string, password: string, name?: string): Promise<AuthState> {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const normalizedEmail = email.toLowerCase();
+        const users = this.getRegisteredUsers();
+
+        if (users[normalizedEmail] || this.mockUsers[normalizedEmail]) {
+          reject(new Error('An account with this email already exists'));
+          return;
+        }
+
+        const newUser: User = {
+          id: `${Date.now()}`,
+          email: normalizedEmail,
+          role: 'user',
+          name
+        };
+
+        users[normalizedEmail] = { password, user: newUser };
+        this.saveRegisteredUsers(users);
+
+        const token = `mock_token_${Date.now()}`;
+        const authState = { user: newUser, token };
+        localStorage.setItem(this.storageKey, JSON.stringify(authState));
+        resolve(authState);
+      }, 800);
+    });
   }
 }
 

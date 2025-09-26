@@ -4,6 +4,7 @@ import { authService, User, AuthState } from '../lib/auth';
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -31,13 +32,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const register = async (email: string, password: string, name?: string) => {
+    try {
+      const authState = await authService.register(email, password, name);
+      setUser(authState.user);
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const logout = () => {
     authService.logout();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
