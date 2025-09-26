@@ -10,7 +10,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '../components/ui/sheet';
-import { ArrowUp, ThumbsDown, MapPin, Plus, User, LogOut, Clock, Calendar, X } from 'lucide-react';
+import { ArrowUp, ThumbsDown, MapPin, Plus, Map, User, LogOut, Clock, Calendar, X } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
 export default function UserDashboard() {
@@ -26,6 +26,7 @@ export default function UserDashboard() {
     department: 'PWD',
     images: []
   });
+  const [showMap, setShowMap] = useState(false);
 
   useEffect(() => {
     loadIssues();
@@ -191,6 +192,89 @@ export default function UserDashboard() {
     }).format(date);
   };
 
+  const getUserPosition = (): Promise<GeolocationPosition> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported'));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000
+      });
+    });
+  };
+
+  const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const R = 6371; // km
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const NearbyIssuesList: React.FC<{ issues: Issue[] }> = ({ issues }) => {
+    const [nearby, setNearby] = React.useState<Issue[]>([]);
+    const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+
+    useEffect(() => {
+      let mounted = true;
+      getUserPosition()
+        .then((pos) => {
+          if (!mounted) return;
+          const { latitude, longitude } = pos.coords;
+          const within5km = issues
+            .map((i) => ({
+              issue: i,
+              dist: getDistanceKm(latitude, longitude, i.location.latitude, i.location.longitude)
+            }))
+            .filter((x) => x.dist <= 5)
+            .sort((a, b) => a.dist - b.dist)
+            .map((x) => x.issue);
+          setNearby(within5km);
+        })
+        .catch(() => setErrorMsg('Location permission required to show nearby issues.'));
+      return () => {
+        mounted = false;
+      };
+    }, [issues]);
+
+    if (errorMsg) {
+      return <p className="text-sm text-muted-foreground">{errorMsg}</p>;
+    }
+    if (nearby.length === 0) {
+      return <p className="text-sm text-muted-foreground">No nearby issues within 5 km.</p>;
+    }
+    return (
+      <div className="space-y-3">
+        {nearby.map((i) => (
+          <Card key={i.id} className="text-sm">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium line-clamp-2">{i.title}</h4>
+                  <p className="text-muted-foreground mt-1">
+                    {i.department} • {formatDate(i.createdAt)}
+                  </p>
+                  <p className="text-muted-foreground mt-1 flex items-center gap-1">
+                    <MapPin className="h-3 w-3" /> {i.location.address}
+                  </p>
+                </div>
+                <Badge className={getStatusColor(i.status)}>{i.status}</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -220,16 +304,9 @@ export default function UserDashboard() {
                   <div className="mt-4 space-y-4">
                     <Card>
                       <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm text-muted-foreground">Total Upvotes on Your Issues</div>
-                            <div className="text-2xl font-bold">{myIssues.reduce((sum, i) => sum + i.upvotes, 0)}</div>
-                            <div className="text-sm text-muted-foreground mt-1">Total Downvotes</div>
-                            <div className="text-xl font-semibold">{myIssues.reduce((sum, i) => sum + (i.downvotes ?? 0), 0)}</div>
-                            <div className="text-sm text-muted-foreground mt-1">Credibility (Upvotes - Downvotes)</div>
-                            <div className="text-xl font-semibold">{myIssues.reduce((sum, i) => sum + i.upvotes - (i.downvotes ?? 0), 0)}</div>
-                          </div>
-                          <Badge>Credibility</Badge>
+                        <div>
+                          <div className="text-sm text-muted-foreground">Credibility</div>
+                          <div className="text-3xl font-bold">{myIssues.reduce((sum, i) => sum + i.upvotes - (i.downvotes ?? 0), 0)}</div>
                         </div>
                       </CardContent>
                     </Card>
@@ -329,6 +406,10 @@ export default function UserDashboard() {
                             <Calendar className="h-3 w-3" />
                             <span>{formatDate(issue.createdAt)}</span>
                           </div>
+                          <div className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            <span>Reporter credibility: {issuesService.getUserCredibility(issue.reporterId)}</span>
+                          </div>
                           <div className="ml-auto flex items-center gap-3">
                             <div className="flex items-center gap-1">
                               <Button
@@ -364,6 +445,27 @@ export default function UserDashboard() {
           </div>
         </div>
       </main>
+
+      {/* Floating Map Button */}
+      <Dialog open={showMap} onOpenChange={setShowMap}>
+        <DialogTrigger asChild>
+          <Button
+            className="fixed bottom-24 right-6 h-12 w-12 rounded-full shadow-md z-50"
+            size="icon"
+            variant="secondary"
+            aria-label="Nearby issues map"
+          >
+            <Map className="h-5 w-5" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>Nearby Issues</DialogTitle>
+            <DialogDescription>Issues reported near your current location.</DialogDescription>
+          </DialogHeader>
+          <NearbyIssuesList issues={issues} />
+        </DialogContent>
+      </Dialog>
 
       {/* Floating Report Button */}
       <Dialog open={showReportForm} onOpenChange={setShowReportForm}>

@@ -80,6 +80,11 @@ class IssuesService {
     }
   }
 
+  getUserCredibility(userId: string): number {
+    const userIssues = this.getIssues().filter(i => i.reporterId === userId);
+    return userIssues.reduce((sum, i) => sum + (i.upvotes || 0) - (i.downvotes || 0), 0);
+  }
+
   getIssuesByDepartment(department: string): Issue[] {
     return this.getIssues()
       .filter(issue => issue.department === department && issue.status !== 'Resolved')

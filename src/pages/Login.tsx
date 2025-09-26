@@ -6,7 +6,6 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Eye, EyeOff, Shield, Users } from 'lucide-react';
-import heroImage from '../assets/hero-image.jpg';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -55,28 +54,28 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen relative">
-      {/* Background Image */}
-      <div className="absolute inset-0">
-        <img
-          src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
-          alt="Beautiful coastal community with waterways and modern architecture"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/40"></div>
-      </div>
-
-      {/* Content */}
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-        {/* Hero Section */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">
-            LOCALEYES
-          </h1>
-          <p className="mt-6 text-xl leading-8 text-white/90 max-w-2xl mx-auto">
-            Empowering communities to report local issues and connect with authorities for swift resolution.
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-secondary-light">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-hero opacity-90"></div>
+        <div className="relative z-10 px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-4xl text-center">
+            <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">
+              LOCALEYES
+            </h1>
+            <p className="mt-6 text-xl leading-8 text-white/90">
+              Empowering communities to report local issues and connect with authorities for swift resolution.
+            </p>
+            <div className="mt-8">
+              <img
+                src={heroImage}
+                alt="Citizens reporting community issues"
+                className="mx-auto rounded-2xl shadow-2xl max-w-2xl w-full"
+              />
+            </div>
+          </div>
         </div>
+      </div>
 
         {/* Login Form */}
         <div className="w-full max-w-md">
