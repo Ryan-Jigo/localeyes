@@ -34,6 +34,7 @@ export default function SignUp() {
     try {
       await register(email, password, name || undefined);
     } catch (err: any) {
+      console.error('Registration error:', err);
       setError(err?.message || 'Failed to create account');
     } finally {
       setIsLoading(false);

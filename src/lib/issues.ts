@@ -1,261 +1,233 @@
 import { Issue, CreateIssueData } from '../types/issue';
-
-// Mock data for demonstration
-const MOCK_ISSUES: Issue[] = [
-  {
-    id: '1',
-    title: 'Pothole on Main Street causing traffic disruption',
-    description: 'Large pothole near the intersection of Main Street and Oak Avenue. Multiple vehicles have been damaged. Urgent repair needed.',
-    department: 'PWD',
-    status: 'Open',
-    location: {
-      latitude: 10.8505,
-      longitude: 76.2711,
-      address: 'Main Street, Thiruvananthapuram'
-    },
-    images: [],
-    upvotes: 23,
-    reporterId: '1',
-    reporterEmail: 'citizen@example.com',
-    createdAt: new Date('2024-01-15T10:30:00Z'),
-    updatedAt: new Date('2024-01-15T10:30:00Z')
-  },
-  {
-    id: '2',
-    title: 'Street light not working - safety concern',
-    description: 'The street light on Park Road has been non-functional for over a week. This is creating safety issues for pedestrians and vehicles during night time.',
-    department: 'KSEB',
-    status: 'In Progress',
-    location: {
-      latitude: 10.8505,
-      longitude: 76.2711,
-      address: 'Park Road, Thiruvananthapuram'
-    },
-    images: [],
-    upvotes: 18,
-    reporterId: '1',
-    reporterEmail: 'citizen@example.com',
-    createdAt: new Date('2024-01-14T15:45:00Z'),
-    updatedAt: new Date('2024-01-16T09:20:00Z')
-  },
-  {
-    id: '3',
-    title: 'Water supply disruption in residential area',
-    description: 'No water supply for the past 3 days in Sector 12. Multiple households affected. Need immediate attention.',
-    department: 'Water',
-    status: 'Open',
-    location: {
-      latitude: 10.8505,
-      longitude: 76.2711,
-      address: 'Sector 12, Thiruvananthapuram'
-    },
-    images: [],
-    upvotes: 31,
-    reporterId: '1',
-    reporterEmail: 'citizen@example.com',
-    createdAt: new Date('2024-01-13T08:15:00Z'),
-    updatedAt: new Date('2024-01-13T08:15:00Z')
-  }
-];
+import { apiClient } from './api';
 
 class IssuesService {
-  private storageKey = 'localeyes_issues';
-  private upvotesKey = 'localeyes_upvotes';
-  private downvotesKey = 'localeyes_downvotes';
-
-  getIssues(): Issue[] {
+  async getIssues(): Promise<Issue[]> {
     try {
-      const stored = localStorage.getItem(this.storageKey);
-      const issues = stored ? JSON.parse(stored) : MOCK_ISSUES;
+      return await apiClient.getIssues();
+    } catch (error) {
+      console.error('API failed, falling back to localStorage:', error);
+      // Fallback to localStorage
+      try {
+        const stored = localStorage.getItem('localeyes_issues');
+        const issues = stored ? JSON.parse(stored) : [];
+        return issues.map((issue: any) => ({
+          ...issue,
+          createdAt: new Date(issue.createdAt),
+          updatedAt: new Date(issue.updatedAt),
+          location: issue.location,
+          images: issue.images || [],
+          abuseReporters: issue.abuseReporters || []
+        }));
+      } catch {
+        return [];
+      }
+    }
+  }
+
+  async getIssuesByDepartment(department: string): Promise<Issue[]> {
+    try {
+      return await apiClient.getIssuesByDepartment(department);
+    } catch (error) {
+      console.error('API failed, falling back to localStorage:', error);
+      const allIssues = await this.getIssues();
+      return allIssues.filter(issue => issue.department === department);
+    }
+  }
+
+  async getIssuesByUser(userId: string): Promise<Issue[]> {
+    try {
+      return await apiClient.getIssuesByUser(userId);
+    } catch (error) {
+      console.error('API failed, falling back to localStorage:', error);
+      const allIssues = await this.getIssues();
+      return allIssues.filter(issue => issue.reporterId === userId);
+    }
+  }
+
+  async createIssue(userId: string, userEmail: string, data: CreateIssueData): Promise<Issue> {
+    try {
+      return await apiClient.createIssue({
+        title: data.title,
+        description: data.description,
+        department: data.department,
+        location: data.location,
+        images: data.images || [],
+        reporterId: userId,
+        reporterEmail: userEmail
+      });
+    } catch (error) {
+      console.error('API failed, falling back to localStorage:', error);
+      // Fallback to localStorage
+      const now = new Date();
+      const newIssue: Issue = {
+        id: Date.now().toString(),
+        ...data,
+        status: 'Open',
+        reports: 0,
+        abuseReporters: [],
+        upvotes: 0,
+        downvotes: 0,
+        reporterId: userId,
+        reporterEmail: userEmail,
+        createdAt: now,
+        updatedAt: now
+      };
       
-      // Convert date strings back to Date objects
-      return issues.map((issue: any) => ({
-        ...issue,
-        createdAt: new Date(issue.createdAt),
-        updatedAt: new Date(issue.updatedAt),
-        downvotes: typeof issue.downvotes === 'number' ? issue.downvotes : 0
-      }));
-    } catch {
-      return MOCK_ISSUES;
+      const issues = await this.getIssues();
+      const updatedIssues = [newIssue, ...issues];
+      localStorage.setItem('localeyes_issues', JSON.stringify(updatedIssues));
+      return newIssue;
     }
   }
 
-  getUserCredibility(userId: string): number {
-    const userIssues = this.getIssues().filter(i => i.reporterId === userId);
-    return userIssues.reduce((sum, i) => sum + (i.upvotes || 0) - (i.downvotes || 0), 0);
-  }
-
-  getIssuesByDepartment(department: string): Issue[] {
-    return this.getIssues()
-      .filter(issue => issue.department === department && issue.status !== 'Resolved')
-      .sort((a, b) => b.upvotes - a.upvotes);
-  }
-
-  getIssuesByUser(userId: string): Issue[] {
-    return this.getIssues()
-      .filter(issue => issue.reporterId === userId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  }
-
-  getUserUpvotes(userId: string): Set<string> {
+  async upvoteIssue(issueId: string, userId: string): Promise<boolean> {
     try {
-      const stored = localStorage.getItem(`${this.upvotesKey}_${userId}`);
-      return new Set(stored ? JSON.parse(stored) : []);
-    } catch {
-      return new Set();
+      await apiClient.upvoteIssue(issueId, userId);
+      return true;
+    } catch (error) {
+      console.error('API failed, falling back to localStorage:', error);
+      // Fallback to localStorage voting
+      return this.voteLocal(issueId, userId, 'upvote');
     }
   }
 
-  getUserDownvotes(userId: string): Set<string> {
+  async downvoteIssue(issueId: string, userId: string): Promise<boolean> {
     try {
-      const stored = localStorage.getItem(`${this.downvotesKey}_${userId}`);
-      return new Set(stored ? JSON.parse(stored) : []);
+      await apiClient.downvoteIssue(issueId, userId);
+      return true;
+    } catch (error) {
+      console.error('API failed, falling back to localStorage:', error);
+      // Fallback to localStorage voting
+      return this.voteLocal(issueId, userId, 'downvote');
+    }
+  }
+
+  private voteLocal(issueId: string, userId: string, voteType: 'upvote' | 'downvote'): boolean {
+    try {
+      const issues = JSON.parse(localStorage.getItem('localeyes_issues') || '[]');
+      const issueIndex = issues.findIndex((issue: any) => issue.id === issueId);
+      
+      if (issueIndex === -1) return false;
+      
+      const userUpvotes = JSON.parse(localStorage.getItem(`localeyes_upvotes_${userId}`) || '[]');
+      const userDownvotes = JSON.parse(localStorage.getItem(`localeyes_downvotes_${userId}`) || '[]');
+      
+      if (voteType === 'upvote') {
+        if (userUpvotes.includes(issueId)) {
+          // Remove upvote
+          issues[issueIndex].upvotes = Math.max(0, issues[issueIndex].upvotes - 1);
+          const newUpvotes = userUpvotes.filter((id: string) => id !== issueId);
+          localStorage.setItem(`localeyes_upvotes_${userId}`, JSON.stringify(newUpvotes));
+        } else {
+          // Add upvote
+          issues[issueIndex].upvotes += 1;
+          userUpvotes.push(issueId);
+          localStorage.setItem(`localeyes_upvotes_${userId}`, JSON.stringify(userUpvotes));
+          
+          // Remove downvote if exists
+          if (userDownvotes.includes(issueId)) {
+            issues[issueIndex].downvotes = Math.max(0, issues[issueIndex].downvotes - 1);
+            const newDownvotes = userDownvotes.filter((id: string) => id !== issueId);
+            localStorage.setItem(`localeyes_downvotes_${userId}`, JSON.stringify(newDownvotes));
+          }
+        }
+      } else {
+        if (userDownvotes.includes(issueId)) {
+          // Remove downvote
+          issues[issueIndex].downvotes = Math.max(0, issues[issueIndex].downvotes - 1);
+          const newDownvotes = userDownvotes.filter((id: string) => id !== issueId);
+          localStorage.setItem(`localeyes_downvotes_${userId}`, JSON.stringify(newDownvotes));
+        } else {
+          // Add downvote
+          issues[issueIndex].downvotes += 1;
+          userDownvotes.push(issueId);
+          localStorage.setItem(`localeyes_downvotes_${userId}`, JSON.stringify(userDownvotes));
+          
+          // Remove upvote if exists
+          if (userUpvotes.includes(issueId)) {
+            issues[issueIndex].upvotes = Math.max(0, issues[issueIndex].upvotes - 1);
+            const newUpvotes = userUpvotes.filter((id: string) => id !== issueId);
+            localStorage.setItem(`localeyes_upvotes_${userId}`, JSON.stringify(newUpvotes));
+          }
+        }
+      }
+      
+      localStorage.setItem('localeyes_issues', JSON.stringify(issues));
+      return true;
     } catch {
-      return new Set();
+      return false;
     }
   }
 
-  createIssue(userId: string, userEmail: string, data: CreateIssueData): Issue {
-    const issues = this.getIssues();
-    
-    const newIssue: Issue = {
-      id: Date.now().toString(),
-      ...data,
-      status: 'Open',
-      reports: 0,
-      abuseReporters: [],
-      upvotes: 0,
-      downvotes: 0,
-      reporterId: userId,
-      reporterEmail: userEmail,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    issues.unshift(newIssue);
-    this.saveIssues(issues);
-    
-    return newIssue;
-  }
-
-  upvoteIssue(issueId: string, userId: string): boolean {
-    const issues = this.getIssues();
-    const userUpvotes = this.getUserUpvotes(userId);
-    const userDownvotes = this.getUserDownvotes(userId);
-    
-    if (userUpvotes.has(issueId)) {
-      // Toggle off (unvote)
-      const issueIndex = issues.findIndex(issue => issue.id === issueId);
-      if (issueIndex === -1) return false;
-      issues[issueIndex].upvotes = Math.max(0, issues[issueIndex].upvotes - 1);
-      userUpvotes.delete(issueId);
-      this.saveIssues(issues);
-      this.saveUserUpvotes(userId, userUpvotes);
+  async updateIssueStatus(issueId: string, status: Issue['status']): Promise<boolean> {
+    try {
+      await apiClient.updateIssueStatus(issueId, status);
       return true;
+    } catch (error) {
+      console.error('API failed, falling back to localStorage:', error);
+      // Fallback to localStorage
+      try {
+        const issues = JSON.parse(localStorage.getItem('localeyes_issues') || '[]');
+        const issueIndex = issues.findIndex((issue: any) => issue.id === issueId);
+        if (issueIndex === -1) return false;
+        
+        issues[issueIndex].status = status;
+        issues[issueIndex].updatedAt = new Date().toISOString();
+        localStorage.setItem('localeyes_issues', JSON.stringify(issues));
+        return true;
+      } catch {
+        return false;
+      }
     }
-
-    const issueIndex = issues.findIndex(issue => issue.id === issueId);
-    if (issueIndex === -1) {
-      return false;
-    }
-
-    // If previously downvoted, remove the downvote first
-    if (userDownvotes.has(issueId)) {
-      issues[issueIndex].downvotes = Math.max(0, issues[issueIndex].downvotes - 1);
-      userDownvotes.delete(issueId);
-      this.saveUserDownvotes(userId, userDownvotes);
-    }
-    issues[issueIndex].upvotes += 1;
-    userUpvotes.add(issueId);
-
-    this.saveIssues(issues);
-    this.saveUserUpvotes(userId, userUpvotes);
-    
-    return true;
   }
 
-  downvoteIssue(issueId: string, userId: string): boolean {
-    const issues = this.getIssues();
-    const userDownvotes = this.getUserDownvotes(userId);
-    const userUpvotes = this.getUserUpvotes(userId);
-    
-    if (userDownvotes.has(issueId)) {
-      // Toggle off (remove downvote)
-      const issueIndex = issues.findIndex(issue => issue.id === issueId);
-      if (issueIndex === -1) return false;
-      issues[issueIndex].downvotes = Math.max(0, issues[issueIndex].downvotes - 1);
-      userDownvotes.delete(issueId);
-      this.saveIssues(issues);
-      this.saveUserDownvotes(userId, userDownvotes);
-      return true;
+  async getUserUpvotes(userId: string): Promise<Set<string>> {
+    try {
+      const response = await apiClient.getUserVotes(userId);
+      return new Set(response.upvotes);
+    } catch (error) {
+      console.error('API failed, falling back to localStorage:', error);
+      // Fallback to localStorage
+      try {
+        const stored = localStorage.getItem(`localeyes_upvotes_${userId}`);
+        return stored ? new Set(JSON.parse(stored)) : new Set();
+      } catch {
+        return new Set();
+      }
     }
-    
-    const issueIndex = issues.findIndex(issue => issue.id === issueId);
-    if (issueIndex === -1) {
-      return false;
-    }
-    
-    // Remove upvote if present (downvote cancels out upvote)
-    if (userUpvotes.has(issueId)) {
-      issues[issueIndex].upvotes = Math.max(0, issues[issueIndex].upvotes - 1);
-      userUpvotes.delete(issueId);
-      this.saveUserUpvotes(userId, userUpvotes);
-    }
-    
-    // Add downvote (this decreases the net score by 1)
-    issues[issueIndex].downvotes += 1;
-    userDownvotes.add(issueId);
-    this.saveIssues(issues);
-    this.saveUserDownvotes(userId, userDownvotes);
-    return true;
   }
 
-  reportIssueAbuse(issueId: string, reporterUserId: string, threshold = 3): 'reported' | 'already' | 'deleted' | 'not_found' {
-    const issues = this.getIssues();
-    const idx = issues.findIndex(i => i.id === issueId);
-    if (idx === -1) return 'not_found';
-    const issue = issues[idx];
-    const reporters = new Set(issue.abuseReporters || []);
-    if (reporters.has(reporterUserId)) return 'already';
-    reporters.add(reporterUserId);
-    issue.abuseReporters = Array.from(reporters);
-    issue.reports = (issue.reports || 0) + 1;
-    if (issue.reports >= threshold) {
-      // Delete issue automatically
-      issues.splice(idx, 1);
-      this.saveIssues(issues);
-      return 'deleted';
+  async getUserDownvotes(userId: string): Promise<Set<string>> {
+    try {
+      const response = await apiClient.getUserVotes(userId);
+      return new Set(response.downvotes);
+    } catch (error) {
+      console.error('API failed, falling back to localStorage:', error);
+      // Fallback to localStorage
+      try {
+        const stored = localStorage.getItem(`localeyes_downvotes_${userId}`);
+        return stored ? new Set(JSON.parse(stored)) : new Set();
+      } catch {
+        return new Set();
+      }
     }
-    issues[idx] = { ...issue, updatedAt: new Date() };
-    this.saveIssues(issues);
-    return 'reported';
   }
 
-  updateIssueStatus(issueId: string, status: Issue['status']): boolean {
-    const issues = this.getIssues();
-    const issueIndex = issues.findIndex(issue => issue.id === issueId);
-    
-    if (issueIndex === -1) {
-      return false;
+  async getUserCredibility(userId: string): Promise<number> {
+    try {
+      const userIssues = await this.getIssuesByUser(userId);
+      return userIssues.reduce((sum, issue) => sum + (issue.upvotes || 0) - (issue.downvotes || 0), 0);
+    } catch (error) {
+      console.error('Error calculating user credibility:', error);
+      return 0;
     }
-
-    issues[issueIndex].status = status;
-    issues[issueIndex].updatedAt = new Date();
-    
-    this.saveIssues(issues);
-    return true;
   }
 
-  private saveIssues(issues: Issue[]): void {
-    localStorage.setItem(this.storageKey, JSON.stringify(issues));
-  }
-
-  private saveUserUpvotes(userId: string, upvotes: Set<string>): void {
-    localStorage.setItem(`${this.upvotesKey}_${userId}`, JSON.stringify([...upvotes]));
-  }
-
-  private saveUserDownvotes(userId: string, downvotes: Set<string>): void {
-    localStorage.setItem(`${this.downvotesKey}_${userId}`, JSON.stringify([...downvotes]));
+  async reportIssueAbuse(issueId: string, reporterUserId: string, threshold = 3): Promise<'reported' | 'already' | 'deleted' | 'not_found'> {
+    // This would need to be implemented in the backend
+    console.warn('Report abuse functionality not yet implemented in API');
+    return 'not_found';
   }
 }
 

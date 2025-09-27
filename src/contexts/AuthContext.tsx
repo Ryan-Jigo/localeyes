@@ -16,9 +16,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = authService.getStoredAuth();
-    if (stored && stored.token && authService.isValidToken(stored.token)) {
-      setUser(stored.user);
+    const user = authService.getCurrentUser();
+    if (user) {
+      setUser(user);
     }
     setLoading(false);
   }, []);

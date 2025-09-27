@@ -1,10 +1,5 @@
-export interface User {
-  id: string;
-  email: string;
-  role: 'user' | 'authority';
-  department?: string;
-  name?: string;
-}
+import { User } from './auth';
+import { apiClient } from './api';
 
 export interface AuthState {
   user: User | null;
@@ -13,150 +8,122 @@ export interface AuthState {
 
 class AuthService {
   private storageKey = 'localeyes_auth';
-  private userStorageKey = 'localeyes_registered_users';
 
-  // Mock users for demo - in real app this would be API calls
-  private mockUsers: Record<string, { password: string; user: User }> = {
-    'pwd@kseb.localeyes.com': {
-      password: 'authority123',
-      user: {
-        id: '2',
-        email: 'pwd@kseb.localeyes.com',
-        role: 'authority',
-        department: 'PWD',
-        name: 'PWD Authority'
-      }
-    },
-    'water@kerala.localeyes.com': {
-      password: 'authority123',
-      user: {
-        id: '3',
-        email: 'water@kerala.localeyes.com',
-        role: 'authority',
-        department: 'Water',
-        name: 'Water Authority'
-      }
-    },
-    'kseb@kerala.localeyes.com': {
-      password: 'authority123',
-      user: {
-        id: '4',
-        email: 'kseb@kerala.localeyes.com',
-        role: 'authority',
-        department: 'KSEB',
-        name: 'KSEB Authority'
-      }
-    },
-    'waste@kerala.localeyes.com': {
-      password: 'authority123',
-      user: {
-        id: '5',
-        email: 'waste@kerala.localeyes.com',
-        role: 'authority',
-        department: 'Waste Management',
-        name: 'Waste Management Authority'
-      }
-    },
-    'other@kerala.localeyes.com': {
-      password: 'authority123',
-      user: {
-        id: '6',
-        email: 'other@kerala.localeyes.com',
-        role: 'authority',
-        department: 'Other',
-        name: 'Other Department Authority'
+  async login(email: string, password: string): Promise<AuthState> {
+    try {
+      const response = await apiClient.login(email, password);
+      const authState: AuthState = {
+        user: response.user,
+        token: response.token
+      };
+      localStorage.setItem(this.storageKey, JSON.stringify(authState));
+      return authState;
+    } catch (error: any) {
+      console.error('API login failed, falling back to localStorage:', error);
+      // Fallback to localStorage for demo purposes
+      return this.loginLocal(email, password);
+    }
+  }
+
+  private loginLocal(email: string, password: string): AuthState {
+    const normalizedEmail = email.toLowerCase();
+    
+    // Check hardcoded authority users
+    const authorityUsers = {
+      'pwd@kseb.localeyes.com': { password: 'authority123', user: { id: '1', email: 'pwd@kseb.localeyes.com', role: 'authority', department: 'PWD', name: 'PWD Authority' } },
+      'water@kerala.localeyes.com': { password: 'authority123', user: { id: '2', email: 'water@kerala.localeyes.com', role: 'authority', department: 'Water', name: 'Water Authority' } },
+      'kseb@kerala.localeyes.com': { password: 'authority123', user: { id: '3', email: 'kseb@kerala.localeyes.com', role: 'authority', department: 'KSEB', name: 'KSEB Authority' } },
+      'waste@kerala.localeyes.com': { password: 'authority123', user: { id: '4', email: 'waste@kerala.localeyes.com', role: 'authority', department: 'Waste Management', name: 'Waste Management Authority' } },
+      'other@kerala.localeyes.com': { password: 'authority123', user: { id: '5', email: 'other@kerala.localeyes.com', role: 'authority', department: 'Other', name: 'Other Department Authority' } },
+    };
+
+    let userData = authorityUsers[normalizedEmail];
+    if (!userData) {
+      // Check localStorage for registered users
+      const stored = localStorage.getItem('localeyes_registered_users');
+      if (stored) {
+        const users = JSON.parse(stored);
+        userData = users[normalizedEmail];
       }
     }
-  };
 
-  login(email: string, password: string): Promise<AuthState> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const normalizedEmail = email.toLowerCase();
+    if (!userData || userData.password !== password) {
+      throw new Error('Invalid credentials');
+    }
 
-        // First, check registered users stored in localStorage
-        const registeredUsers = this.getRegisteredUsers();
-        let userData = registeredUsers[normalizedEmail];
+    const token = `mock_token_${Date.now()}`;
+    const authState: AuthState = {
+      user: userData.user,
+      token
+    };
+    localStorage.setItem(this.storageKey, JSON.stringify(authState));
+    return authState;
+  }
 
-        // If not found, fall back to mock authority accounts
-        if (!userData) {
-          userData = this.mockUsers[normalizedEmail];
-        }
-        
-        if (!userData || userData.password !== password) {
-          reject(new Error('Invalid credentials'));
-          return;
-        }
+  async register(email: string, password: string, name?: string): Promise<AuthState> {
+    try {
+      const response = await apiClient.register(email, password, name);
+      const authState: AuthState = {
+        user: response.user,
+        token: response.token
+      };
+      localStorage.setItem(this.storageKey, JSON.stringify(authState));
+      return authState;
+    } catch (error: any) {
+      console.error('API register failed, falling back to localStorage:', error);
+      // Fallback to localStorage for demo purposes
+      return this.registerLocal(email, password, name);
+    }
+  }
 
-        const token = `mock_token_${Date.now()}`;
-        const authState = {
-          user: userData.user,
-          token
-        };
-
-        localStorage.setItem(this.storageKey, JSON.stringify(authState));
-        resolve(authState);
-      }, 1000);
-    });
+  private registerLocal(email: string, password: string, name?: string): AuthState {
+    const normalizedEmail = email.toLowerCase();
+    
+    // Check if user already exists
+    const stored = localStorage.getItem('localeyes_registered_users');
+    const users = stored ? JSON.parse(stored) : {};
+    
+    if (users[normalizedEmail]) {
+      throw new Error('An account with this email already exists');
+    }
+    
+    const newUser: User = { id: `${Date.now()}`, email: normalizedEmail, role: 'user', name };
+    users[normalizedEmail] = { password, user: newUser };
+    localStorage.setItem('localeyes_registered_users', JSON.stringify(users));
+    
+    const token = `mock_token_${Date.now()}`;
+    const authState: AuthState = {
+      user: newUser,
+      token
+    };
+    localStorage.setItem(this.storageKey, JSON.stringify(authState));
+    return authState;
   }
 
   logout(): void {
     localStorage.removeItem(this.storageKey);
   }
 
-  getStoredAuth(): AuthState | null {
+  getCurrentUser(): User | null {
     try {
       const stored = localStorage.getItem(this.storageKey);
-      return stored ? JSON.parse(stored) : null;
+      if (!stored) return null;
+      const authState = JSON.parse(stored);
+      return authState.user;
     } catch {
       return null;
     }
   }
 
-  isValidToken(token: string): boolean {
-    return token?.startsWith('mock_token_') || false;
-  }
-
-  private getRegisteredUsers(): Record<string, { password: string; user: User }> {
+  getCurrentToken(): string | null {
     try {
-      const raw = localStorage.getItem(this.userStorageKey);
-      return raw ? JSON.parse(raw) : {};
+      const stored = localStorage.getItem(this.storageKey);
+      if (!stored) return null;
+      const authState = JSON.parse(stored);
+      return authState.token;
     } catch {
-      return {};
+      return null;
     }
-  }
-
-  private saveRegisteredUsers(users: Record<string, { password: string; user: User }>): void {
-    localStorage.setItem(this.userStorageKey, JSON.stringify(users));
-  }
-
-  register(email: string, password: string, name?: string): Promise<AuthState> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const normalizedEmail = email.toLowerCase();
-        const users = this.getRegisteredUsers();
-
-        if (users[normalizedEmail] || this.mockUsers[normalizedEmail]) {
-          reject(new Error('An account with this email already exists'));
-          return;
-        }
-
-        const newUser: User = {
-          id: `${Date.now()}`,
-          email: normalizedEmail,
-          role: 'user',
-          name
-        };
-
-        users[normalizedEmail] = { password, user: newUser };
-        this.saveRegisteredUsers(users);
-
-        const token = `mock_token_${Date.now()}`;
-        const authState = { user: newUser, token };
-        localStorage.setItem(this.storageKey, JSON.stringify(authState));
-        resolve(authState);
-      }, 800);
-    });
   }
 }
 
