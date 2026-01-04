@@ -1,50 +1,18 @@
-import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import React from 'react';
+import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Eye, EyeOff, Shield, Users } from 'lucide-react';
+import { Shield, Users, ArrowRight } from 'lucide-react';
 import heroImage from '../assets/hero-image.jpg';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  
-  const { user, login } = useAuth();
+  const { user } = useAuth();
 
   // Redirect if already logged in
   if (user) {
     return <Navigate to={user.role === 'authority' ? '/authority' : '/dashboard'} replace />;
   }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
-    try {
-      await login(email, password);
-    } catch (err) {
-      setError('Invalid credentials. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fillDemoCredentials = (type: 'citizen' | 'authority') => {
-    if (type === 'citizen') {
-      setEmail('citizen@example.com');
-      setPassword('password123');
-    } else {
-      setEmail('pwd@kseb.localeyes.com');
-      setPassword('authority123');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-secondary-light">
@@ -70,99 +38,119 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Login Form */}
+      {/* Login Selection */}
       <div className="relative -mt-20 px-4 pb-20 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-md">
-          <Card className="shadow-lg border-0 bg-card/95 backdrop-blur-sm">
-            <CardHeader className="space-y-1 text-center">
-              <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-              <CardDescription>
-                Sign in to report issues or manage community requests
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Input
-                    type="email"
-                    placeholder="Email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="h-12"
-                  />
-                </div>
-                <div className="relative space-y-2">
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="h-12 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
+        <div className="mx-auto max-w-4xl">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-foreground mb-4">Choose Your Login</h2>
+            <p className="text-muted-foreground text-lg">
+              Select the appropriate login portal based on your role
+            </p>
+          </div>
 
-                {error && (
-                  <div className="text-sm text-destructive text-center">
-                    {error}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Citizen Login Card */}
+            <Card className="shadow-lg border-0 bg-card/95 backdrop-blur-sm hover:shadow-xl transition-shadow">
+              <CardHeader className="text-center pb-4">
+                <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                  <Users className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle className="text-2xl font-bold text-primary">Citizen Portal</CardTitle>
+                <CardDescription className="text-base">
+                  Report community issues, track progress, and upvote important concerns
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
+                    <span>Report local issues and problems</span>
                   </div>
-                )}
-
-                <Button
-                  type="submit"
-                  className="w-full h-12 text-lg font-semibold shadow-primary"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Signing In...' : 'Sign In'}
-                </Button>
-              </form>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-muted-foreground/20"></div>
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Demo Accounts</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fillDemoCredentials('citizen')}
-                  className="h-auto p-3 flex flex-col items-center gap-2"
-                >
-                  <Users className="h-5 w-5 text-primary" />
-                  <div>
-                    <div className="font-medium">Citizen</div>
-                    <Badge variant="secondary" className="text-xs">Demo User</Badge>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
+                    <span>Track issue resolution progress</span>
                   </div>
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fillDemoCredentials('authority')}
-                  className="h-auto p-3 flex flex-col items-center gap-2"
-                >
-                  <Shield className="h-5 w-5 text-secondary" />
-                  <div>
-                    <div className="font-medium">Authority</div>
-                    <Badge variant="secondary" className="text-xs">PWD Demo</Badge>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
+                    <span>Upvote and prioritize community concerns</span>
                   </div>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
+                    <span>Receive updates on reported issues</span>
+                  </div>
+                </div>
+                
+                <Link to="/user-login" className="block">
+                  <Button className="w-full h-12 text-lg font-semibold shadow-primary">
+                    Login as Citizen
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground mb-1">Demo Account:</div>
+                  <div className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+                    citizen@example.com
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Authority Login Card */}
+            <Card className="shadow-lg border-0 bg-card/95 backdrop-blur-sm hover:shadow-xl transition-shadow">
+              <CardHeader className="text-center pb-4">
+                <div className="mx-auto w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mb-4">
+                  <Shield className="h-8 w-8 text-secondary" />
+                </div>
+                <CardTitle className="text-2xl font-bold text-secondary">Authority Portal</CardTitle>
+                <CardDescription className="text-base">
+                  Manage and resolve community issues assigned to your department
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-secondary rounded-full"></div>
+                    <span>View assigned department issues</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-secondary rounded-full"></div>
+                    <span>Update issue status and progress</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-secondary rounded-full"></div>
+                    <span>Prioritize issues by community votes</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-secondary rounded-full"></div>
+                    <span>Communicate with citizens</span>
+                  </div>
+                </div>
+                
+                <Link to="/admin-login" className="block">
+                  <Button className="w-full h-12 text-lg font-semibold shadow-secondary bg-secondary hover:bg-secondary/90">
+                    Login as Authority
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground mb-1">Demo Accounts:</div>
+                  <div className="space-y-1">
+                    <div className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+                      pwd@kseb.localeyes.com
+                    </div>
+                    <div className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+                      water@kerala.localeyes.com
+                    </div>
+                    <div className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+                      waste@kerala.localeyes.com
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

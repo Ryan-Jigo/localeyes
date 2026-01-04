@@ -18,6 +18,7 @@ export default function UserDashboard() {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [myIssues, setMyIssues] = useState<Issue[]>([]);
   const [userUpvotes, setUserUpvotes] = useState<Set<string>>(new Set());
+  const [userDownvotes, setUserDownvotes] = useState<Set<string>>(new Set());
   const [showReportForm, setShowReportForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reportForm, setReportForm] = useState<Omit<CreateIssueData, 'location'>>({
@@ -37,16 +38,20 @@ export default function UserDashboard() {
     const allIssues = issuesService.getIssues();
     const userIssues = issuesService.getIssuesByUser(user.id);
     const upvotes = issuesService.getUserUpvotes(user.id);
+    const downvotes = issuesService.getUserDownvotes(user.id);
     
-    // Add upvote status to issues
-    const issuesWithUpvoteStatus = allIssues.map(issue => ({
+    // Add vote status to issues
+    const issuesWithVoteStatus = allIssues.map(issue => ({
       ...issue,
-      hasUserUpvoted: upvotes.has(issue.id)
+      hasUserUpvoted: upvotes.has(issue.id),
+      hasUserDownvoted: downvotes.has(issue.id),
     }));
     
-    setIssues(issuesWithUpvoteStatus.sort((a, b) => b.upvotes - a.upvotes));
+    // Sort by net score (upvotes - downvotes)
+    setIssues(issuesWithVoteStatus.sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes)));
     setMyIssues(userIssues);
     setUserUpvotes(upvotes);
+    setUserDownvotes(downvotes);
   };
 
   const handleUpvote = async (issueId: string) => {
@@ -58,6 +63,19 @@ export default function UserDashboard() {
       toast({
         title: "Issue upvoted!",
         description: "Your vote helps prioritize this issue."
+      });
+    }
+  };
+
+  const handleUnvote = async (issueId: string) => {
+    if (!user) return;
+
+    const success = issuesService.unvoteIssue(issueId, user.id);
+    if (success) {
+      loadIssues();
+      toast({
+        title: "Vote removed",
+        description: "Your upvote has been undone."
       });
     }
   };
@@ -146,6 +164,8 @@ export default function UserDashboard() {
     }).format(date);
   };
 
+  const getScore = (issue: Issue) => issue.upvotes - issue.downvotes;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -228,7 +248,7 @@ export default function UserDashboard() {
                 <Card key={issue.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
-                      {/* Upvote Section */}
+                      {/* Vote Section */}
                       <div className="flex flex-col items-center gap-2 min-w-0">
                         <Button
                           variant={issue.hasUserUpvoted ? "default" : "outline"}
@@ -239,7 +259,18 @@ export default function UserDashboard() {
                         >
                           <ArrowUp className="h-4 w-4" />
                         </Button>
-                        <span className="font-medium text-sm">{issue.upvotes}</span>
+                        <span className="font-medium text-sm" title={`Upvotes: ${issue.upvotes} • Downvotes: ${issue.downvotes}`}>
+                          {getScore(issue)}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUnvote(issue.id)}
+                          disabled={!issue.hasUserUpvoted}
+                          className="h-auto px-2 py-1 text-xs"
+                        >
+                          Undo
+                        </Button>
                       </div>
 
                       {/* Issue Content */}

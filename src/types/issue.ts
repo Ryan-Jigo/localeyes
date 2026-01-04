@@ -11,11 +11,13 @@ export interface Issue {
   };
   images: string[];
   upvotes: number;
+  downvotes: number;
   reporterId: string;
   reporterEmail: string;
   createdAt: Date;
   updatedAt: Date;
   hasUserUpvoted?: boolean;
+  hasUserDownvoted?: boolean;
 }
 
 export interface CreateIssueData {
