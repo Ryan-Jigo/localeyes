@@ -22,3 +22,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment & Databases
+.env
+.env.*
+server/.env
+server/.env.*
+*.db
+server/*.db
+
+# Editor & System
+.cursor/
+server.log
+
+# Nested loops
+local-concern-watch/
