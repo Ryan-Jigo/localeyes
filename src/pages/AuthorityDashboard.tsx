@@ -5,43 +5,40 @@ import { Issue } from '../types/issue';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { MapPin, Clock, User, LogOut, CheckCircle, PlayCircle, AlertTriangle, Calendar } from 'lucide-react';
-import { toast } from '../hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { MapPin, Clock, User, LogOut, CheckCircle, PlayCircle, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function AuthorityDashboard() {
   const { user, logout } = useAuth();
   const [issues, setIssues] = useState<Issue[]>([]);
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [authorityVotes, setAuthorityVotes] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
 
-  if (!user || user.role !== 'authority') {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-          <p className="text-muted-foreground">This page is only accessible to authority users.</p>
-        </div>
-      </div>
-    );
-  }
-
+  // ✅ Hooks must come BEFORE any conditional returns
   useEffect(() => {
-    loadIssues();
+    if (user?.department) {
+      loadIssues();
+    }
   }, [user]);
 
   const loadIssues = async () => {
     if (!user?.department) return;
-    
+
     setIsLoading(true);
     try {
-      const departmentIssues = await issuesService.getIssuesByDepartment(user.department);
+      const [departmentIssues, votes] = await Promise.all([
+        issuesService.getIssuesByDepartment(user.department),
+        issuesService.getAuthorityCredibilityVotes(user.id)
+      ]);
       setIssues(departmentIssues);
+      setAuthorityVotes(votes);
     } catch (error) {
       console.error('Error loading issues:', error);
       setIssues([]);
+      setAuthorityVotes({});
     } finally {
       setIsLoading(false);
     }
@@ -53,18 +50,69 @@ export default function AuthorityDashboard() {
       loadIssues();
       setShowStatusDialog(false);
       setSelectedIssue(null);
-      toast({
-        title: "Success",
-        description: `Issue status updated to ${newStatus}`,
+
+      const statusMessage = newStatus === 'Resolved'
+        ? 'Issue marked as resolved!'
+        : `Issue status updated to ${newStatus}`;
+
+      toast.success(statusMessage, {
+        description: newStatus === 'Resolved'
+          ? 'The reporter has been notified about the resolution.'
+          : 'Citizens will be notified of this update.',
       });
     } else {
-      toast({
-        title: "Error",
-        description: "Failed to update issue status",
-        variant: "destructive",
-      });
+      toast.error('Failed to update issue status');
     }
   };
+
+  const handleCredibilityVote = async (issueId: string, vote: 1 | -1) => {
+    if (!user || user.role !== 'authority') return;
+
+    const currentVote = authorityVotes[issueId] || 0;
+    
+    // Optimistic update
+    setIssues(prev => prev.map(issue => {
+      if (issue.id !== issueId) return issue;
+      let diff = 0;
+      if (currentVote === vote) {
+        // Toggling off
+        diff = -vote;
+      } else {
+        // Changing vote or new vote
+        diff = vote - currentVote;
+      }
+      return { ...issue, credibility: (issue.credibility || 0) + diff };
+    }));
+
+    setAuthorityVotes(prev => {
+      const next = { ...prev };
+      if (currentVote === vote) {
+        delete next[issueId];
+      } else {
+        next[issueId] = vote;
+      }
+      return next;
+    });
+
+    try {
+      await issuesService.voteCredibility(issueId, vote);
+    } catch (error) {
+      toast.error('Failed to register credibility vote');
+      loadIssues(); // Revert on failure
+    }
+  };
+
+  // ✅ Conditional guard AFTER all hooks
+  if (!user || user.role !== 'authority') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-muted-foreground">This page is only accessible to authority users.</p>
+        </div>
+      </div>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -84,14 +132,10 @@ export default function AuthorityDashboard() {
     }
   };
 
-  const getStatusCounts = () => {
-    return issues.reduce((counts, issue) => {
-      counts[issue.status] = (counts[issue.status] || 0) + 1;
-      return counts;
-    }, {} as Record<string, number>);
-  };
-
-  const statusCounts = getStatusCounts();
+  const statusCounts = issues.reduce((counts, issue) => {
+    counts[issue.status] = (counts[issue.status] || 0) + 1;
+    return counts;
+  }, {} as Record<string, number>);
 
   return (
     <div className="min-h-screen bg-background">
@@ -141,7 +185,7 @@ export default function AuthorityDashboard() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -153,7 +197,7 @@ export default function AuthorityDashboard() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -165,7 +209,7 @@ export default function AuthorityDashboard() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -202,13 +246,13 @@ export default function AuthorityDashboard() {
                                   <span className="ml-1">{issue.status}</span>
                                 </Badge>
                               </div>
-                              
+
                               <p className="text-muted-foreground mb-4">{issue.description}</p>
-                              
+
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
                                 <div className="flex items-center">
                                   <MapPin className="h-4 w-4 mr-2" />
-                                  <span>{issue.location?.address || 'Unknown Location'}</span>
+                                  <span>{issue.location?.address || `${issue.location?.latitude?.toFixed(4)}, ${issue.location?.longitude?.toFixed(4)}`}</span>
                                 </div>
                                 <div className="flex items-center">
                                   <User className="h-4 w-4 mr-2" />
@@ -219,17 +263,40 @@ export default function AuthorityDashboard() {
                                   <span>{new Date(issue.createdAt).toLocaleDateString()}</span>
                                 </div>
                               </div>
-                              
+
                               <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                                <div className="flex items-center gap-4 text-sm">
-                                  <span>Upvotes: {issue.upvotes || 0}</span>
-                                  <span>Downvotes: {issue.downvotes || 0}</span>
-                                  <span>Net Score: {(issue.upvotes || 0) - (issue.downvotes || 0)}</span>
+                                <div className="flex flex-col gap-2">
+                                  <div className="flex items-center gap-4 text-sm">
+                                    <span className="flex items-center gap-1" title="User Upvotes">👍 {issue.upvotes || 0}</span>
+                                    <span className="flex items-center gap-1" title="User Downvotes">👎 {issue.downvotes || 0}</span>
+                                    <span className="font-semibold text-primary ml-2 bg-primary/10 px-2 py-1 rounded-md">
+                                      Credibility: {issue.credibility || 0}
+                                    </span>
+                                  </div>
+                                  <div className="flex gap-2 mt-1">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleCredibilityVote(issue.id, 1)}
+                                      className={`h-8 px-2 text-xs transition-transform hover:scale-105 active:scale-95 ${authorityVotes[issue.id] === 1 ? 'bg-primary text-white border-primary hover:bg-primary hover:text-white' : 'hover:bg-transparent hover:text-current'}`}
+                                    >
+                                      Verify
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleCredibilityVote(issue.id, -1)}
+                                      className={`h-8 px-2 text-xs transition-transform hover:scale-105 active:scale-95 ${authorityVotes[issue.id] === -1 ? 'bg-destructive text-white border-destructive hover:bg-destructive hover:text-white' : 'hover:bg-transparent hover:text-current'}`}
+                                    >
+                                      Fake
+                                    </Button>
+                                  </div>
                                 </div>
-                                
+
                                 <div className="flex gap-2">
                                   {issue.status === 'Open' && (
                                     <Button
+                                      id={`start-work-${issue.id}`}
                                       size="sm"
                                       onClick={() => {
                                         setSelectedIssue(issue);
@@ -243,6 +310,7 @@ export default function AuthorityDashboard() {
                                   )}
                                   {issue.status === 'In Progress' && (
                                     <Button
+                                      id={`resolve-${issue.id}`}
                                       size="sm"
                                       onClick={() => handleStatusUpdate(issue.id, 'Resolved')}
                                       className="bg-green-600 hover:bg-green-700"
@@ -263,9 +331,9 @@ export default function AuthorityDashboard() {
                   <Card>
                     <CardContent className="p-12 text-center">
                       <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No Open Issues</h3>
+                      <h3 className="text-lg font-medium mb-2">No Issues Found</h3>
                       <p className="text-muted-foreground">
-                        Great work! There are currently no open issues for the {user.department} department.
+                        There are currently no issues for the {user.department} department.
                       </p>
                     </CardContent>
                   </Card>
@@ -283,12 +351,13 @@ export default function AuthorityDashboard() {
                   Change the status of "{selectedIssue?.title}"
                 </DialogDescription>
               </DialogHeader>
-              
+
               <div className="space-y-4">
                 <div className="space-y-3">
                   <Button
+                    id="status-in-progress"
                     variant="outline"
-                    className="h-auto p-4 justify-start"
+                    className="w-full h-auto p-4 justify-start"
                     onClick={() => selectedIssue && handleStatusUpdate(selectedIssue.id, 'In Progress')}
                     disabled={selectedIssue?.status === 'In Progress'}
                   >
@@ -298,10 +367,11 @@ export default function AuthorityDashboard() {
                       <div className="text-sm text-muted-foreground">Work has started on this issue</div>
                     </div>
                   </Button>
-                  
+
                   <Button
+                    id="status-resolved"
                     variant="outline"
-                    className="h-auto p-4 justify-start"
+                    className="w-full h-auto p-4 justify-start"
                     onClick={() => selectedIssue && handleStatusUpdate(selectedIssue.id, 'Resolved')}
                     disabled={selectedIssue?.status === 'Resolved'}
                   >

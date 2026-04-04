@@ -4,10 +4,16 @@ import { apiClient } from './api';
 class IssuesService {
   async getIssues(): Promise<Issue[]> {
     try {
-      return await apiClient.getIssues();
+      const response = await apiClient.getIssues() as { issues?: Issue[]; pagination?: unknown } | Issue[];
+      // Handle both paginated ({ issues: [] }) and flat array responses
+      const rawIssues = Array.isArray(response) ? response : (response as any).issues || [];
+      return rawIssues.map((issue: any) => ({
+        ...issue,
+        createdAt: new Date(issue.createdAt || issue.created_at),
+        updatedAt: new Date(issue.updatedAt || issue.updated_at),
+      }));
     } catch (error) {
       console.error('API failed, falling back to localStorage:', error);
-      // Fallback to localStorage
       try {
         const stored = localStorage.getItem('localeyes_issues');
         const issues = stored ? JSON.parse(stored) : [];
@@ -27,7 +33,13 @@ class IssuesService {
 
   async getIssuesByDepartment(department: string): Promise<Issue[]> {
     try {
-      return await apiClient.getIssuesByDepartment(department);
+      const response = await apiClient.getIssuesByDepartment(department) as { issues?: Issue[]; pagination?: unknown } | Issue[];
+      const rawIssues = Array.isArray(response) ? response : (response as any).issues || [];
+      return rawIssues.map((issue: any) => ({
+        ...issue,
+        createdAt: new Date(issue.createdAt || issue.created_at),
+        updatedAt: new Date(issue.updatedAt || issue.updated_at),
+      }));
     } catch (error) {
       console.error('API failed, falling back to localStorage:', error);
       const allIssues = await this.getIssues();
@@ -37,7 +49,13 @@ class IssuesService {
 
   async getIssuesByUser(userId: string): Promise<Issue[]> {
     try {
-      return await apiClient.getIssuesByUser(userId);
+      const response = await apiClient.getIssuesByUser(userId) as { issues?: Issue[]; pagination?: unknown } | Issue[];
+      const rawIssues = Array.isArray(response) ? response : (response as any).issues || [];
+      return rawIssues.map((issue: any) => ({
+        ...issue,
+        createdAt: new Date(issue.createdAt || issue.created_at),
+        updatedAt: new Date(issue.updatedAt || issue.updated_at),
+      }));
     } catch (error) {
       console.error('API failed, falling back to localStorage:', error);
       const allIssues = await this.getIssues();
@@ -55,13 +73,12 @@ class IssuesService {
         images: data.images || [],
         reporterId: userId,
         reporterEmail: userEmail
-      });
+      }) as Issue;
     } catch (error) {
       console.error('API failed, falling back to localStorage:', error);
-      // Fallback to localStorage
       const now = new Date();
       const newIssue: Issue = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         ...data,
         status: 'Open',
         reports: 0,
@@ -73,7 +90,6 @@ class IssuesService {
         createdAt: now,
         updatedAt: now
       };
-      
       const issues = await this.getIssues();
       const updatedIssues = [newIssue, ...issues];
       localStorage.setItem('localeyes_issues', JSON.stringify(updatedIssues));
@@ -87,7 +103,6 @@ class IssuesService {
       return true;
     } catch (error) {
       console.error('API failed, falling back to localStorage:', error);
-      // Fallback to localStorage voting
       return this.voteLocal(issueId, userId, 'upvote');
     }
   }
@@ -98,7 +113,6 @@ class IssuesService {
       return true;
     } catch (error) {
       console.error('API failed, falling back to localStorage:', error);
-      // Fallback to localStorage voting
       return this.voteLocal(issueId, userId, 'downvote');
     }
   }
@@ -107,52 +121,38 @@ class IssuesService {
     try {
       const issues = JSON.parse(localStorage.getItem('localeyes_issues') || '[]');
       const issueIndex = issues.findIndex((issue: any) => issue.id === issueId);
-      
+
       if (issueIndex === -1) return false;
-      
+
       const userUpvotes = JSON.parse(localStorage.getItem(`localeyes_upvotes_${userId}`) || '[]');
       const userDownvotes = JSON.parse(localStorage.getItem(`localeyes_downvotes_${userId}`) || '[]');
-      
+
       if (voteType === 'upvote') {
         if (userUpvotes.includes(issueId)) {
-          // Remove upvote
           issues[issueIndex].upvotes = Math.max(0, issues[issueIndex].upvotes - 1);
-          const newUpvotes = userUpvotes.filter((id: string) => id !== issueId);
-          localStorage.setItem(`localeyes_upvotes_${userId}`, JSON.stringify(newUpvotes));
+          localStorage.setItem(`localeyes_upvotes_${userId}`, JSON.stringify(userUpvotes.filter((id: string) => id !== issueId)));
         } else {
-          // Add upvote
           issues[issueIndex].upvotes += 1;
-          userUpvotes.push(issueId);
-          localStorage.setItem(`localeyes_upvotes_${userId}`, JSON.stringify(userUpvotes));
-          
-          // Remove downvote if exists
+          localStorage.setItem(`localeyes_upvotes_${userId}`, JSON.stringify([...userUpvotes, issueId]));
           if (userDownvotes.includes(issueId)) {
             issues[issueIndex].downvotes = Math.max(0, issues[issueIndex].downvotes - 1);
-            const newDownvotes = userDownvotes.filter((id: string) => id !== issueId);
-            localStorage.setItem(`localeyes_downvotes_${userId}`, JSON.stringify(newDownvotes));
+            localStorage.setItem(`localeyes_downvotes_${userId}`, JSON.stringify(userDownvotes.filter((id: string) => id !== issueId)));
           }
         }
       } else {
         if (userDownvotes.includes(issueId)) {
-          // Remove downvote
           issues[issueIndex].downvotes = Math.max(0, issues[issueIndex].downvotes - 1);
-          const newDownvotes = userDownvotes.filter((id: string) => id !== issueId);
-          localStorage.setItem(`localeyes_downvotes_${userId}`, JSON.stringify(newDownvotes));
+          localStorage.setItem(`localeyes_downvotes_${userId}`, JSON.stringify(userDownvotes.filter((id: string) => id !== issueId)));
         } else {
-          // Add downvote
           issues[issueIndex].downvotes += 1;
-          userDownvotes.push(issueId);
-          localStorage.setItem(`localeyes_downvotes_${userId}`, JSON.stringify(userDownvotes));
-          
-          // Remove upvote if exists
+          localStorage.setItem(`localeyes_downvotes_${userId}`, JSON.stringify([...userDownvotes, issueId]));
           if (userUpvotes.includes(issueId)) {
             issues[issueIndex].upvotes = Math.max(0, issues[issueIndex].upvotes - 1);
-            const newUpvotes = userUpvotes.filter((id: string) => id !== issueId);
-            localStorage.setItem(`localeyes_upvotes_${userId}`, JSON.stringify(newUpvotes));
+            localStorage.setItem(`localeyes_upvotes_${userId}`, JSON.stringify(userUpvotes.filter((id: string) => id !== issueId)));
           }
         }
       }
-      
+
       localStorage.setItem('localeyes_issues', JSON.stringify(issues));
       return true;
     } catch {
@@ -166,12 +166,10 @@ class IssuesService {
       return true;
     } catch (error) {
       console.error('API failed, falling back to localStorage:', error);
-      // Fallback to localStorage
       try {
         const issues = JSON.parse(localStorage.getItem('localeyes_issues') || '[]');
         const issueIndex = issues.findIndex((issue: any) => issue.id === issueId);
         if (issueIndex === -1) return false;
-        
         issues[issueIndex].status = status;
         issues[issueIndex].updatedAt = new Date().toISOString();
         localStorage.setItem('localeyes_issues', JSON.stringify(issues));
@@ -184,11 +182,10 @@ class IssuesService {
 
   async getUserUpvotes(userId: string): Promise<Set<string>> {
     try {
-      const response = await apiClient.getUserVotes(userId);
+      const response = await apiClient.getUserVotes(userId) as { upvotes: string[]; downvotes: string[] };
       return new Set(response.upvotes);
     } catch (error) {
       console.error('API failed, falling back to localStorage:', error);
-      // Fallback to localStorage
       try {
         const stored = localStorage.getItem(`localeyes_upvotes_${userId}`);
         return stored ? new Set(JSON.parse(stored)) : new Set();
@@ -200,11 +197,10 @@ class IssuesService {
 
   async getUserDownvotes(userId: string): Promise<Set<string>> {
     try {
-      const response = await apiClient.getUserVotes(userId);
+      const response = await apiClient.getUserVotes(userId) as { upvotes: string[]; downvotes: string[] };
       return new Set(response.downvotes);
     } catch (error) {
       console.error('API failed, falling back to localStorage:', error);
-      // Fallback to localStorage
       try {
         const stored = localStorage.getItem(`localeyes_downvotes_${userId}`);
         return stored ? new Set(JSON.parse(stored)) : new Set();
@@ -225,9 +221,23 @@ class IssuesService {
   }
 
   async reportIssueAbuse(issueId: string, reporterUserId: string, threshold = 3): Promise<'reported' | 'already' | 'deleted' | 'not_found'> {
-    // This would need to be implemented in the backend
     console.warn('Report abuse functionality not yet implemented in API');
     return 'not_found';
+  }
+
+  async voteCredibility(issueId: string, vote: 1 | -1): Promise<void> {
+    await apiClient.voteCredibility(issueId, vote);
+  }
+
+  async getAuthorityCredibilityVotes(authorityId: string): Promise<Record<string, number>> {
+    try {
+      const votes = await apiClient.getCredibilityVotes(authorityId) as { issue_id: string; vote: number }[];
+      const result: Record<string, number> = {};
+      votes.forEach(v => { result[v.issue_id] = v.vote; });
+      return result;
+    } catch {
+      return {};
+    }
   }
 }
 

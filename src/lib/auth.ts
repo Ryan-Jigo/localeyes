@@ -1,5 +1,12 @@
-import { User } from './auth';
 import { apiClient } from './api';
+
+export interface User {
+  id: string;
+  email: string;
+  role: 'user' | 'authority';
+  department?: string;
+  name?: string;
+}
 
 export interface AuthState {
   user: User | null;

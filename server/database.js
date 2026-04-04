@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const pool = new Pool({
@@ -78,9 +79,11 @@ async function initializeDatabase() {
     for (const user of authorityUsers) {
       const { rows } = await client.query('SELECT id FROM users WHERE email = $1', [user.email]);
       if (rows.length === 0) {
+        // ✅ Hash password before seeding
+        const hashedPassword = await bcrypt.hash(user.password, 10);
         await client.query(
           'INSERT INTO users (email, password, role, department, name) VALUES ($1, $2, $3, $4, $5)',
-          [user.email, user.password, user.role, user.department, user.name]
+          [user.email, hashedPassword, user.role, user.department, user.name]
         );
         console.log(`Seeded authority user: ${user.email}`);
       }

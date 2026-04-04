@@ -2,7 +2,7 @@ export interface Issue {
   id: string;
   title: string;
   description: string;
-  department: 'PWD' | 'KSEB' | 'Water' | 'Waste Management' | 'Traffic' | 'Other';
+  department: 'PWD' | 'KSEB' | 'Water' | 'Waste Management' | 'Traffic' | 'Fire Department' | 'Police' | 'Ambulance/Healthcare' | 'Other';
   status: 'Open' | 'In Progress' | 'Resolved';
   location: {
     latitude: number;
@@ -20,6 +20,7 @@ export interface Issue {
   updatedAt: Date;
   hasUserUpvoted?: boolean;
   hasUserDownvoted?: boolean;
+  credibility?: number;
 }
 
 export interface CreateIssueData {
@@ -40,6 +41,9 @@ export const DEPARTMENTS: Issue['department'][] = [
   'Water',
   'Waste Management',
   'Traffic',
+  'Fire Department',
+  'Police',
+  'Ambulance/Healthcare',
   'Other'
 ];
 

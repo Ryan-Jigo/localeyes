@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const bcrypt = require('bcryptjs');
 
 // Create database file in the server directory
 const dbPath = path.join(__dirname, 'localeyes.db');
@@ -54,31 +55,57 @@ async function initializeDatabase() {
         );
       `);
 
-      // Seed authority users
-      const authorityUsers = [
-        { email: 'pwd@kseb.localeyes.com', password: 'authority123', role: 'authority', department: 'PWD', name: 'PWD Authority' },
+      // Create credibility_votes table
+      db.run(`
+        CREATE TABLE IF NOT EXISTS credibility_votes (
+          authority_id TEXT NOT NULL,
+          issue_id TEXT NOT NULL,
+          vote INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (authority_id, issue_id)
+        );
+      `);
+
+      // Add credibility column to issues if it doesn't exist
+      db.run('ALTER TABLE issues ADD COLUMN credibility INTEGER DEFAULT 0', (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding credibility column:', err);
+        }
+      });
+
+      // Seed both demo authorities and demo citizen
+      const seedUsers = [
+        // Authorities
+        { email: 'pwd@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'PWD', name: 'PWD Authority' },
         { email: 'water@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'Water', name: 'Water Authority' },
         { email: 'kseb@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'KSEB', name: 'KSEB Authority' },
         { email: 'waste@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'Waste Management', name: 'Waste Management Authority' },
+        { email: 'traffic@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'Traffic', name: 'Traffic Authority' },
+        { email: 'fire@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'Fire Department', name: 'Fire Department Authority' },
+        { email: 'police@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'Police', name: 'Police Authority' },
+        { email: 'health@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'Ambulance/Healthcare', name: 'Healthcare Authority' },
         { email: 'other@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'Other', name: 'Other Department Authority' },
+        // Citizen
+        { email: 'citizen@example.com', password: 'password123', role: 'user', department: null, name: 'Demo Citizen' }
       ];
 
       // Check if users already exist and insert if not
-      authorityUsers.forEach(user => {
-        db.get('SELECT id FROM users WHERE email = ?', [user.email], (err, row) => {
+      seedUsers.forEach(user => {
+        db.get('SELECT id FROM users WHERE email = ?', [user.email], async (err, row) => {
           if (err) {
             console.error('Error checking user:', err);
             return;
           }
           if (!row) {
+            const hashedPassword = await bcrypt.hash(user.password, 10);
             db.run(
               'INSERT INTO users (email, password, role, department, name) VALUES (?, ?, ?, ?, ?)',
-              [user.email, user.password, user.role, user.department, user.name],
+              [user.email, hashedPassword, user.role, user.department, user.name],
               function(err) {
                 if (err) {
                   console.error('Error inserting user:', err);
                 } else {
-                  console.log(`Seeded authority user: ${user.email}`);
+                  console.log(`Seeded user: ${user.email}`);
                 }
               }
             );

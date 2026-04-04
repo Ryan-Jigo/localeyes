@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { issuesService } from '../lib/issues';
 import { Issue, CreateIssueData, DEPARTMENTS } from '../types/issue';
@@ -9,7 +9,10 @@ import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
-import { MapPin, ThumbsUp, ThumbsDown, AlertTriangle, Clock, CheckCircle, XCircle, Plus, LogOut } from 'lucide-react';
+import {
+  MapPin, ThumbsUp, ThumbsDown, AlertTriangle, Clock,
+  CheckCircle, XCircle, Plus, LogOut, Search, Filter
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function UserDashboard() {
@@ -17,53 +20,115 @@ export default function UserDashboard() {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [myIssues, setMyIssues] = useState<Issue[]>([]);
   const [userUpvotes, setUserUpvotes] = useState<Set<string>>(new Set());
+  const [userDownvotes, setUserDownvotes] = useState<Set<string>>(new Set());
   const [showReportForm, setShowReportForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [reportForm, setReportForm] = useState<Omit<CreateIssueData, 'location'>>({
+  const [votingId, setVotingId] = useState<string | null>(null);
+
+  // Search & filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterDepartment, setFilterDepartment] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+
+  const [reportForm, setReportForm] = useState<{
+    title: string;
+    description: string;
+    department: string;
+    address: string;
+  }>({
     title: '',
     description: '',
     department: '',
+    address: '',
   });
 
-  const loadIssues = async () => {
+  const loadIssues = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [allIssues, myUserIssues, upvotes] = await Promise.all([
+      const [allIssues, myUserIssues, upvotes, downvotes] = await Promise.all([
         issuesService.getIssues(),
         user ? issuesService.getIssuesByUser(user.id) : Promise.resolve([]),
-        user ? issuesService.getUserUpvotes(user.id) : Promise.resolve(new Set()),
+        user ? issuesService.getUserUpvotes(user.id) : Promise.resolve(new Set<string>()),
+        user ? issuesService.getUserDownvotes(user.id) : Promise.resolve(new Set<string>()),
       ]);
       setIssues(allIssues);
       setMyIssues(myUserIssues);
       setUserUpvotes(upvotes);
+      setUserDownvotes(downvotes);
     } catch (error) {
       console.error('Error loading issues:', error);
       toast.error('Failed to load issues');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     loadIssues();
-  }, [user]);
+  }, [loadIssues]);
 
+  // ✅ Optimistic vote update — no full data reload
   const handleVote = async (issueId: string, voteType: 'upvote' | 'downvote') => {
-    if (!user) return;
+    if (!user || votingId) return;
+
+    setVotingId(issueId);
+    const wasUpvoted = userUpvotes.has(issueId);
+    const wasDownvoted = userDownvotes.has(issueId);
+
+    // Optimistic update
+    setIssues(prev => prev.map(issue => {
+      if (issue.id !== issueId) return issue;
+      if (voteType === 'upvote') {
+        return {
+          ...issue,
+          upvotes: wasUpvoted ? issue.upvotes - 1 : issue.upvotes + 1,
+          downvotes: wasDownvoted ? issue.downvotes - 1 : issue.downvotes,
+        };
+      } else {
+        return {
+          ...issue,
+          downvotes: wasDownvoted ? issue.downvotes - 1 : issue.downvotes + 1,
+          upvotes: wasUpvoted ? issue.upvotes - 1 : issue.upvotes,
+        };
+      }
+    }));
+
+    setUserUpvotes(prev => {
+      const next = new Set(prev);
+      if (voteType === 'upvote') {
+        wasUpvoted ? next.delete(issueId) : next.add(issueId);
+      } else {
+        next.delete(issueId);
+      }
+      return next;
+    });
+
+    setUserDownvotes(prev => {
+      const next = new Set(prev);
+      if (voteType === 'downvote') {
+        wasDownvoted ? next.delete(issueId) : next.add(issueId);
+      } else {
+        next.delete(issueId);
+      }
+      return next;
+    });
 
     try {
-      const success = voteType === 'upvote' 
+      const success = voteType === 'upvote'
         ? await issuesService.upvoteIssue(issueId, user.id)
         : await issuesService.downvoteIssue(issueId, user.id);
 
-      if (success) {
-        await loadIssues(); // Reload to get updated vote counts
-        toast.success(`Issue ${voteType === 'upvote' ? 'upvoted' : 'downvoted'} successfully`);
+      if (!success) {
+        // Revert on failure
+        await loadIssues();
+        toast.error('Failed to vote on issue');
       }
     } catch (error) {
-      console.error('Error voting:', error);
+      await loadIssues(); // Revert
       toast.error('Failed to vote on issue');
+    } finally {
+      setVotingId(null);
     }
   };
 
@@ -75,27 +140,49 @@ export default function UserDashboard() {
 
     setIsSubmitting(true);
     try {
-      // Get user's current location
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject);
-      });
+      let location: CreateIssueData['location'];
 
-      const newIssue: CreateIssueData = {
-        ...reportForm,
-        location: {
+      // Try GPS first, fall back to manual address
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+        });
+        location = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-        },
+          address: reportForm.address || undefined,
+        };
+      } catch {
+        // ✅ Geolocation denied/unavailable — use address as fallback
+        if (!reportForm.address.trim()) {
+          toast.error('Location access denied. Please enter your address manually.');
+          setIsSubmitting(false);
+          return;
+        }
+        // Use rough approximation or just store the address with placeholder coords
+        location = {
+          latitude: 0,
+          longitude: 0,
+          address: reportForm.address.trim(),
+        };
+      }
+
+      const newIssue: CreateIssueData = {
+        title: reportForm.title,
+        description: reportForm.description,
+        department: reportForm.department as CreateIssueData['department'],
+        location,
+        images: [],
       };
 
       await issuesService.createIssue(user.id, user.email, newIssue);
       toast.success('Issue reported successfully!');
       setShowReportForm(false);
-      setReportForm({ title: '', description: '', department: '' });
+      setReportForm({ title: '', description: '', department: '', address: '' });
       await loadIssues();
     } catch (error) {
       console.error('Error creating issue:', error);
-      toast.error('Failed to report issue');
+      toast.error('Failed to report issue. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -103,33 +190,39 @@ export default function UserDashboard() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Open':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      case 'In Progress':
-        return <AlertTriangle className="h-4 w-4 text-blue-500" />;
-      case 'Resolved':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'Closed':
-        return <XCircle className="h-4 w-4 text-gray-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
+      case 'Open': return <Clock className="h-4 w-4 text-yellow-500" />;
+      case 'In Progress': return <AlertTriangle className="h-4 w-4 text-blue-500" />;
+      case 'Resolved': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'Closed': return <XCircle className="h-4 w-4 text-gray-500" />;
+      default: return <Clock className="h-4 w-4 text-gray-500" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Open':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'In Progress':
-        return 'bg-blue-100 text-blue-800';
-      case 'Resolved':
-        return 'bg-green-100 text-green-800';
-      case 'Closed':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'Open': return 'bg-yellow-100 text-yellow-800';
+      case 'In Progress': return 'bg-blue-100 text-blue-800';
+      case 'Resolved': return 'bg-green-100 text-green-800';
+      case 'Closed': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  // ✅ Client-side search/filter
+  const filteredIssues = issues.filter(issue => {
+    const matchesSearch = !searchQuery ||
+      issue.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      issue.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesDept = filterDepartment === 'all' || issue.department === filterDepartment;
+    const matchesStatus = filterStatus === 'all' || issue.status === filterStatus;
+    return matchesSearch && matchesDept && matchesStatus;
+  });
+
+  // ✅ Credibility: based on user's OWN issues' authority credibility votes
+  const credibilityScore = myIssues.reduce(
+    (sum, issue) => sum + (issue.credibility || 0),
+    0
+  );
 
   if (!user) {
     return (
@@ -158,7 +251,6 @@ export default function UserDashboard() {
         </div>
       )}
 
-      {/* Dashboard Content */}
       {!isLoading && (
         <>
           {/* Header */}
@@ -166,12 +258,13 @@ export default function UserDashboard() {
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold text-primary">LOCALEYES</h1>
+                  <h1 className="text-2xl font-bold text-primary">LꙪCAL EYES</h1>
                   <p className="text-sm text-muted-foreground">Welcome back, {user?.name || user?.email}</p>
                 </div>
-                
+
                 <div className="flex items-center gap-4">
                   <Button
+                    id="report-issue-btn"
                     onClick={() => setShowReportForm(true)}
                     className="bg-primary hover:bg-primary/90"
                   >
@@ -179,9 +272,10 @@ export default function UserDashboard() {
                     Report Issue
                   </Button>
                   <Button
+                    id="logout-btn"
                     variant="outline"
                     onClick={logout}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="text-muted-foreground hover:bg-destructive hover:text-white hover:border-destructive transition-colors"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     Logout
@@ -194,18 +288,59 @@ export default function UserDashboard() {
           <main className="container mx-auto px-4 py-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* All Issues */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 space-y-4">
+                {/* ✅ Search & Filter bar */}
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="search-issues"
+                          placeholder="Search issues..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9"
+                        />
+                      </div>
+                      <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+                        <SelectTrigger id="filter-dept" className="w-full sm:w-40">
+                          <Filter className="h-4 w-4 mr-2" />
+                          <SelectValue placeholder="Department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Departments</SelectItem>
+                          {DEPARTMENTS.map(dept => (
+                            <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={filterStatus} onValueChange={setFilterStatus}>
+                        <SelectTrigger id="filter-status" className="w-full sm:w-36">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Statuses</SelectItem>
+                          <SelectItem value="Open">Open</SelectItem>
+                          <SelectItem value="In Progress">In Progress</SelectItem>
+                          <SelectItem value="Resolved">Resolved</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <Card>
                   <CardHeader>
                     <CardTitle>Community Issues</CardTitle>
                     <CardDescription>
-                      Issues reported by community members
+                      {filteredIssues.length} issue{filteredIssues.length !== 1 ? 's' : ''} found
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {issues.length > 0 ? (
+                    {filteredIssues.length > 0 ? (
                       <div className="space-y-4">
-                        {issues.map((issue) => (
+                        {filteredIssues.map((issue) => (
                           <div key={issue.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                             <div className="flex items-start justify-between mb-2">
                               <h3 className="font-semibold text-lg">{issue.title}</h3>
@@ -216,9 +351,9 @@ export default function UserDashboard() {
                                 </div>
                               </Badge>
                             </div>
-                            
+
                             <p className="text-muted-foreground mb-3">{issue.description}</p>
-                            
+
                             <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
                               <div className="flex items-center gap-4">
                                 <span className="flex items-center gap-1">
@@ -229,21 +364,26 @@ export default function UserDashboard() {
                               </div>
                               <span>{new Date(issue.createdAt).toLocaleDateString()}</span>
                             </div>
-                            
+
                             <div className="flex items-center gap-2">
                               <Button
+                                id={`upvote-${issue.id}`}
                                 variant="outline"
                                 size="sm"
+                                disabled={votingId === issue.id}
                                 onClick={() => handleVote(issue.id, 'upvote')}
-                                className={userUpvotes.has(issue.id) ? 'bg-green-50 border-green-200' : ''}
+                                className={`transition-transform hover:scale-110 active:scale-95 ${userUpvotes.has(issue.id) ? 'bg-primary text-white border-primary hover:bg-primary hover:text-white' : 'hover:bg-transparent hover:text-current'}`}
                               >
                                 <ThumbsUp className="h-4 w-4 mr-1" />
                                 {issue.upvotes}
                               </Button>
                               <Button
+                                id={`downvote-${issue.id}`}
                                 variant="outline"
                                 size="sm"
+                                disabled={votingId === issue.id}
                                 onClick={() => handleVote(issue.id, 'downvote')}
+                                className={`transition-transform hover:scale-110 active:scale-95 ${userDownvotes.has(issue.id) ? 'bg-destructive text-white border-destructive hover:bg-destructive hover:text-white' : 'hover:bg-transparent hover:text-current'}`}
                               >
                                 <ThumbsDown className="h-4 w-4 mr-1" />
                                 {issue.downvotes}
@@ -253,7 +393,11 @@ export default function UserDashboard() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-muted-foreground text-center py-8">No issues reported yet.</p>
+                      <p className="text-muted-foreground text-center py-8">
+                        {searchQuery || filterDepartment !== 'all' || filterStatus !== 'all'
+                          ? 'No issues match your filters.'
+                          : 'No issues reported yet.'}
+                      </p>
                     )}
                   </CardContent>
                 </Card>
@@ -307,9 +451,8 @@ export default function UserDashboard() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm">Credibility Score</span>
-                      <Badge variant="secondary">
-                        {issues.reduce((sum, issue) => sum + (issue.upvotes || 0) - (issue.downvotes || 0), 0)}
-                      </Badge>
+                      {/* ✅ Fixed: uses myIssues, not all issues */}
+                      <Badge variant="secondary">{credibilityScore}</Badge>
                     </div>
                   </CardContent>
                 </Card>
@@ -326,48 +469,64 @@ export default function UserDashboard() {
                   Help improve your community by reporting issues that need attention.
                 </DialogDescription>
               </DialogHeader>
-              
+
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">Issue Title *</label>
+                  <label htmlFor="issue-title" className="text-sm font-medium">Issue Title *</label>
                   <Input
+                    id="issue-title"
                     value={reportForm.title}
                     onChange={(e) => setReportForm({ ...reportForm, title: e.target.value })}
                     placeholder="Brief description of the issue"
                     className="mt-1"
+                    maxLength={200}
                   />
                 </div>
-                
+
                 <div>
-                  <label className="text-sm font-medium">Department *</label>
+                  <label htmlFor="issue-dept" className="text-sm font-medium">Department *</label>
                   <Select
                     value={reportForm.department}
                     onValueChange={(value) => setReportForm({ ...reportForm, department: value })}
                   >
-                    <SelectTrigger className="mt-1">
+                    <SelectTrigger id="issue-dept" className="mt-1">
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                     <SelectContent>
                       {DEPARTMENTS.map((dept) => (
-                        <SelectItem key={dept} value={dept}>
-                          {dept}
-                        </SelectItem>
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
-                  <label className="text-sm font-medium">Description *</label>
+                  <label htmlFor="issue-description" className="text-sm font-medium">Description *</label>
                   <Textarea
+                    id="issue-description"
                     value={reportForm.description}
                     onChange={(e) => setReportForm({ ...reportForm, description: e.target.value })}
-                    placeholder="Detailed description of the issue, including location and any relevant details"
+                    placeholder="Detailed description of the issue"
                     className="mt-1 min-h-[100px]"
+                    maxLength={2000}
+                  />
+                </div>
+
+                {/* ✅ Manual address fallback */}
+                <div>
+                  <label htmlFor="issue-address" className="text-sm font-medium">
+                    Address / Location <span className="text-muted-foreground text-xs">(optional — used if GPS is denied)</span>
+                  </label>
+                  <Input
+                    id="issue-address"
+                    value={reportForm.address}
+                    onChange={(e) => setReportForm({ ...reportForm, address: e.target.value })}
+                    placeholder="e.g. Near Main Street junction, Thiruvananthapuram"
+                    className="mt-1"
                   />
                 </div>
               </div>
-              
+
               <div className="flex justify-end gap-2 pt-4">
                 <Button
                   variant="outline"
@@ -376,10 +535,10 @@ export default function UserDashboard() {
                 >
                   Cancel
                 </Button>
-                <Button 
-                  onClick={handleSubmitReport} 
+                <Button
+                  id="submit-report-btn"
+                  onClick={handleSubmitReport}
                   disabled={isSubmitting}
-                  className="shadow-primary"
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Report'}
                 </Button>
