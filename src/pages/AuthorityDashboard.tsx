@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { MapPin, Clock, User, LogOut, CheckCircle, PlayCircle, AlertTriangle } from 'lucide-react';
+import { MapPin, Clock, User, LogOut, CheckCircle, PlayCircle, AlertTriangle, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AuthorityDashboard() {
@@ -16,6 +16,7 @@ export default function AuthorityDashboard() {
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [authorityVotes, setAuthorityVotes] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // ✅ Hooks must come BEFORE any conditional returns
   useEffect(() => {
@@ -249,6 +250,21 @@ export default function AuthorityDashboard() {
 
                               <p className="text-muted-foreground mb-4">{issue.description}</p>
 
+                              {/* Attached images */}
+                              {issue.images && issue.images.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                  {issue.images.map((img, idx) => (
+                                    <div
+                                      key={idx}
+                                      onClick={() => setSelectedImage(img)}
+                                      className="relative w-24 h-20 rounded-md overflow-hidden border cursor-pointer hover:opacity-90 transition-opacity bg-muted flex-shrink-0"
+                                    >
+                                      <img src={img} alt={`Attached ${idx + 1}`} className="w-full h-full object-cover" />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
                                 <div className="flex items-center">
                                   <MapPin className="h-4 w-4 mr-2" />
@@ -382,6 +398,29 @@ export default function AuthorityDashboard() {
                     </div>
                   </Button>
                 </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Lightbox / Image Viewer Dialog */}
+          <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
+            <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black/90 border-none">
+              <DialogTitle className="sr-only">View Image</DialogTitle>
+              <div className="relative w-full h-full flex items-center justify-center min-h-[300px] max-h-[85vh]">
+                {selectedImage && (
+                  <img
+                    src={selectedImage}
+                    alt="Full View"
+                    className="max-w-full max-h-[85vh] object-contain"
+                  />
+                )}
+                <button
+                  onClick={() => setSelectedImage(null)}
+                  className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/80 transition-colors"
+                  aria-label="Close image viewer"
+                >
+                  <X className="h-6 w-6" />
+                </button>
               </div>
             </DialogContent>
           </Dialog>

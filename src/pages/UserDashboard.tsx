@@ -11,9 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../components/ui/textarea';
 import {
   MapPin, ThumbsUp, ThumbsDown, AlertTriangle, Clock,
-  CheckCircle, XCircle, Plus, LogOut, Search, Filter
+  CheckCircle, XCircle, Plus, LogOut, Search, Filter,
+  Camera, Upload, X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { resizeImage, fileToDataUrl } from '../lib/image';
 
 export default function UserDashboard() {
   const { user, logout } = useAuth();
@@ -36,12 +38,130 @@ export default function UserDashboard() {
     description: string;
     department: string;
     address: string;
+    images: string[];
   }>({
     title: '',
     description: '',
     department: '',
     address: '',
+    images: [],
   });
+
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const videoRef = React.useRef<HTMLVideoElement | null>(null);
+
+  // Clean up camera stream if dialog is closed
+  useEffect(() => {
+    if (!showReportForm && cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+      setIsCameraActive(false);
+    }
+  }, [showReportForm, cameraStream]);
+
+  const handleStartCamera = async () => {
+    try {
+      setIsCameraActive(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      setCameraStream(stream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (err) {
+      console.error('Error accessing camera:', err);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setCameraStream(stream);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+      } catch (fallbackErr) {
+        console.error('Fallback camera error:', fallbackErr);
+        toast.error('Could not access camera. Please check permissions.');
+        setIsCameraActive(false);
+      }
+    }
+  };
+
+  const handleStopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setIsCameraActive(false);
+  };
+
+  const handleCapturePhoto = async () => {
+    if (!videoRef.current) return;
+    try {
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        const resized = await resizeImage(dataUrl);
+        setReportForm(prev => ({
+          ...prev,
+          images: [...prev.images, resized].slice(0, 3)
+        }));
+        toast.success('Photo captured!');
+      }
+    } catch (err) {
+      console.error('Error capturing photo:', err);
+      toast.error('Failed to capture photo.');
+    } finally {
+      handleStopCamera();
+    }
+  };
+
+  const handleTriggerUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const remainingSlots = 3 - reportForm.images.length;
+    if (remainingSlots <= 0) {
+      toast.warning('Max 3 images reached.');
+      return;
+    }
+
+    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+    toast.loading('Processing image(s)...', { id: 'img-upload' });
+
+    try {
+      const resizedBase64s = await Promise.all(
+        filesToProcess.map(async (file) => {
+          const rawUrl = await fileToDataUrl(file);
+          return await resizeImage(rawUrl);
+        })
+      );
+
+      setReportForm(prev => ({
+        ...prev,
+        images: [...prev.images, ...resizedBase64s].slice(0, 3)
+      }));
+      toast.success(`${filesToProcess.length} image(s) processed!`, { id: 'img-upload' });
+    } catch (err) {
+      console.error('Error uploading files:', err);
+      toast.error('Failed to process image files.', { id: 'img-upload' });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const loadIssues = useCallback(async () => {
     try {
@@ -172,13 +292,13 @@ export default function UserDashboard() {
         description: reportForm.description,
         department: reportForm.department as CreateIssueData['department'],
         location,
-        images: [],
+        images: reportForm.images,
       };
 
       await issuesService.createIssue(user.id, user.email, newIssue);
       toast.success('Issue reported successfully!');
       setShowReportForm(false);
-      setReportForm({ title: '', description: '', department: '', address: '' });
+      setReportForm({ title: '', description: '', department: '', address: '', images: [] });
       await loadIssues();
     } catch (error) {
       console.error('Error creating issue:', error);
@@ -354,6 +474,21 @@ export default function UserDashboard() {
 
                             <p className="text-muted-foreground mb-3">{issue.description}</p>
 
+                            {/* Attached images */}
+                            {issue.images && issue.images.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                {issue.images.map((img, idx) => (
+                                  <div
+                                    key={idx}
+                                    onClick={() => setSelectedImage(img)}
+                                    className="relative w-24 h-20 rounded-md overflow-hidden border cursor-pointer hover:opacity-90 transition-opacity bg-muted flex-shrink-0"
+                                  >
+                                    <img src={img} alt={`Attached ${idx + 1}`} className="w-full h-full object-cover" />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
                             <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
                               <div className="flex items-center gap-4">
                                 <span className="flex items-center gap-1">
@@ -416,12 +551,28 @@ export default function UserDashboard() {
                       <div className="space-y-3">
                         {myIssues.map((issue) => (
                           <div key={issue.id} className="border rounded-lg p-3">
-                            <div className="flex items-center justify-between mb-2">
+                             <div className="flex items-center justify-between mb-2">
                               <h4 className="font-medium text-sm">{issue.title}</h4>
                               <Badge className={getStatusColor(issue.status)}>
                                 {getStatusIcon(issue.status)}
                               </Badge>
                             </div>
+
+                            {/* Small thumbnails in My Issues */}
+                            {issue.images && issue.images.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mb-2">
+                                {issue.images.map((img, idx) => (
+                                  <div
+                                    key={idx}
+                                    onClick={() => setSelectedImage(img)}
+                                    className="relative w-10 h-8 rounded-sm overflow-hidden border cursor-pointer hover:opacity-90 transition-opacity bg-muted flex-shrink-0"
+                                  >
+                                    <img src={img} alt={`My Attached ${idx + 1}`} className="w-full h-full object-cover" />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
                             <div className="flex items-center justify-between text-xs text-muted-foreground">
                               <span>{issue.department}</span>
                               <span>{new Date(issue.createdAt).toLocaleDateString()}</span>
@@ -525,6 +676,95 @@ export default function UserDashboard() {
                     className="mt-1"
                   />
                 </div>
+
+                {/* Attach Images section */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Attach Images (Max 3)</label>
+
+                  {/* Thumbnail gallery */}
+                  {reportForm.images.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {reportForm.images.map((img, index) => (
+                        <div key={index} className="relative w-24 h-24 rounded-md overflow-hidden border bg-muted">
+                          <img src={img} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updatedImages = reportForm.images.filter((_, idx) => idx !== index);
+                              setReportForm({ ...reportForm, images: updatedImages });
+                            }}
+                            className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors"
+                            aria-label="Remove image"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Camera interface */}
+                  {isCameraActive ? (
+                    <div className="relative border rounded-lg overflow-hidden bg-black aspect-video max-h-[300px] flex flex-col justify-end">
+                      <video
+                        ref={videoRef}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        playsInline
+                        muted
+                      />
+                      <div className="relative z-10 flex justify-center gap-4 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleCapturePhoto}
+                        >
+                          <Camera className="h-4 w-4 mr-2" />
+                          Capture
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleStopCamera}
+                        >
+                          Cancel Camera
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleTriggerUpload}
+                        disabled={reportForm.images.length >= 3}
+                        className="flex-1"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload File
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleStartCamera}
+                        disabled={reportForm.images.length >= 3}
+                        className="flex-1"
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        Take Photo
+                      </Button>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept="image/*"
+                        className="hidden"
+                        multiple
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
@@ -542,6 +782,29 @@ export default function UserDashboard() {
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Report'}
                 </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Lightbox / Image Viewer Dialog */}
+          <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
+            <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black/90 border-none">
+              <DialogTitle className="sr-only">View Image</DialogTitle>
+              <div className="relative w-full h-full flex items-center justify-center min-h-[300px] max-h-[85vh]">
+                {selectedImage && (
+                  <img
+                    src={selectedImage}
+                    alt="Full View"
+                    className="max-w-full max-h-[85vh] object-contain"
+                  />
+                )}
+                <button
+                  onClick={() => setSelectedImage(null)}
+                  className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/80 transition-colors"
+                  aria-label="Close image viewer"
+                >
+                  <X className="h-6 w-6" />
+                </button>
               </div>
             </DialogContent>
           </Dialog>
