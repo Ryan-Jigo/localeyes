@@ -1,188 +1,152 @@
-# LocalEyes - Community Issue Reporting System
+# LꙪCAL EYES - Civic Issue Reporting Platform
 
-A full-stack application for reporting and managing local community issues with real-time collaboration between citizens and authorities.
+LOCALEYES is a modern, full-stack civic issue reporting and collaboration system. It empowers citizens to report local concerns (like potholes, street light failures, or water leaks) with geolocation and image attachments, and connects them directly with government departments and authorities for swift resolution.
 
-## Features
+---
 
-- **User Registration & Authentication**: Citizens can create accounts and log in
-- **Issue Reporting**: Report issues with location, photos, and department assignment
-- **Voting System**: Upvote/downvote issues to prioritize community concerns
-- **Authority Dashboard**: Government departments can manage and update issue status
-- **Real-time Data**: PostgreSQL database with API backend for data persistence
-- **Responsive Design**: Works on desktop and mobile devices
+## 🚀 Key Features
 
-## Tech Stack
+* **User Authentication & Roles**:
+  * **Citizens**: Can report issues, upvote/downvote community concerns, and track their own reports.
+  * **Authorities**: Departmental dashboards for PWD, Water Authority, KSEB, Police, Traffic, Waste Management, etc., to manage tickets and verify credibility.
+* **Smart Reporting Form**:
+  * Automatically reads **GPS Geolocation** coordinates with a manual address fallback.
+  * **Visual Proof**: Capture photos directly from a live camera stream or upload files from a device.
+  * **Optimized Storage**: Client-side canvas compression downscales images to a maximum of 1024px (JPEG format) to keep uploads under the 5MB request limit.
+* **Credibility & Voting System**:
+  * Community upvotes and downvotes to prioritize critical issues.
+  * Authority credibility votes (**Verify** vs. **Fake** flag) that update the user's community credibility score.
+* **Email Notifications (SMTP)**:
+  * When an authority changes an issue's status to **Resolved**, the backend automatically dispatches a HTML-formatted email to the reporter utilizing Gmail SMTP.
+* **Responsive Dashboard**: Beautiful dark-themed dashboard with clean metrics and charts.
+
+---
+
+## 🛠️ Tech Stack
 
 ### Frontend
-- React 18 with TypeScript
-- Vite for build tooling
-- Tailwind CSS for styling
-- Radix UI components
-- React Router for navigation
+* **React 18** with **TypeScript** & **Vite**
+* **Tailwind CSS** for responsive layout and aesthetics
+* **Radix UI** components & **Lucide React** icons
+* **Sonner** for push-toast notifications
 
 ### Backend
-- Node.js with Express
-- PostgreSQL database
-- RESTful API design
-- CORS enabled for cross-origin requests
+* **Node.js** with **Express** API
+* **Nodemailer** for Gmail SMTP notifications
+* **SQLite3** for zero-configuration local development
 
-## Prerequisites
+---
 
-- Node.js (v16 or higher)
-- PostgreSQL (v12 or higher)
-- npm or yarn
+## 📁 Project Structure
 
-## Setup Instructions
+```
+LocalEyes/
+├── src/                         # Frontend React Codebase
+│   ├── components/              # Reusable UI elements (dialog, inputs, buttons)
+│   ├── contexts/                # Authentication State provider
+│   ├── lib/                     # API client hooks, image compression helpers
+│   ├── pages/                   # User and Authority dashboard views, Login & SignUp
+│   ├── types/                   # TypeScript schemas and definitions
+│   └── index.css                # Base styles
+├── server/                      # Node.js Express API Backend
+│   ├── email/                   # Gmail SMTP email service
+│   ├── middleware/              # JWT authentication guards
+│   ├── routes/                  # Express routes (auth, issues, emails)
+│   ├── database-sqlite.js       # SQLite connection & schema seeder
+│   ├── server-sqlite.js         # SQLite server entry point
+│   └── package.json             # Backend dependencies
+├── README.md                    # Core documentation
+├── vercel.json                  # Frontend deployment configuration
+└── package.json                 # Project scripts (root runner)
+```
 
-### 1. Database Setup
+---
 
-1. Install PostgreSQL on your system
-2. Create a database named `localeyes`:
-   ```sql
-   CREATE DATABASE localeyes;
-   ```
-3. Note your PostgreSQL connection details (host, port, username, password)
+## ⚙️ Setup & Installation
 
-### 2. Backend Setup
+### Prerequisites
+* **Node.js** (v18 or higher recommended)
+* **npm** or **yarn**
 
-1. Navigate to the server directory:
-   ```bash
-   cd server
-   ```
+### 1. Repository Configuration
+Clone the repository and install dependencies in both the root folder and the server folder:
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+# Install root (frontend) dependencies
+npm install
 
-3. Create environment file:
-   ```bash
-   cp env.example .env
-   ```
+# Install server (backend) dependencies
+cd server
+npm install
+cd ..
+```
 
-4. Edit `.env` with your PostgreSQL credentials:
-   ```
-   DB_HOST=localhost
-   DB_PORT=5432
-   DB_NAME=localeyes
-   DB_USER=postgres
-   DB_PASSWORD=your_password_here
-   PORT=3001
-   NODE_ENV=development
-   ```
+### 2. Environment Configuration
 
-5. Start the backend server:
-   ```bash
-   npm run dev
-   ```
+Create a `.env` file in the **root** folder:
+```env
+VITE_API_URL=http://localhost:3001/api
+```
 
-The API will be available at `http://localhost:3001`
+Create a `.env` file in the **`server`** folder:
+```env
+# Gmail SMTP Configuration
+GMAIL_USER=your-email@gmail.com
+GMAIL_APP_PASSWORD=your-16-character-app-password
 
-### 3. Frontend Setup
+# Server Config
+PORT=3001
+ALLOWED_ORIGINS=http://localhost:8080,http://localhost:3000,http://localhost:5173
+```
 
-1. Navigate to the project root:
-   ```bash
-   cd ..
-   ```
+> [!TIP]
+> **How to get a Gmail App Password:**
+> 1. Go to your Google Account settings and enable **2-Step Verification**.
+> 2. Search for **App passwords** in the search bar.
+> 3. Enter a name (e.g., "LocalEyes App") and click **Create**.
+> 4. Google will generate a 16-character password (e.g., `abcd efgh ijkl mnop`). Copy and paste this into the `GMAIL_APP_PASSWORD` field in `server/.env`.
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+---
 
-3. Start the frontend development server:
-   ```bash
-   npm run dev
-   ```
+## 🏃 Running the Application
 
-The application will be available at `http://localhost:8080`
+To run both the backend server and frontend development server concurrently, run the following command in the **root** directory:
 
-### 4. Run Both Together
-
-To run both frontend and backend simultaneously:
 ```bash
 npm run dev:full
 ```
 
-## Default Authority Accounts
+* The **Frontend** will be running at: `http://localhost:8080/`
+* The **Backend** will be running at: `http://localhost:3001/`
+* The **Health Check** endpoint is: `http://localhost:3001/api/health`
 
-The system comes with pre-configured authority accounts:
+---
 
-- **PWD**: `pwd@kseb.localeyes.com` / `authority123`
-- **Water Authority**: `water@kerala.localeyes.com` / `authority123`
-- **KSEB**: `kseb@kerala.localeyes.com` / `authority123`
-- **Waste Management**: `waste@kerala.localeyes.com` / `authority123`
-- **Other Department**: `other@kerala.localeyes.com` / `authority123`
+## 🔑 Demo Login Accounts
 
-## API Endpoints
+On first run, the SQLite database is automatically seeded with demo accounts:
 
-### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
+### Citizen Demo Profile
+* **Email**: `citizen@example.com`
+* **Password**: `password123`
 
-### Issues
-- `GET /api/issues` - Get all issues
-- `GET /api/issues/department/:department` - Get issues by department
-- `GET /api/issues/user/:userId` - Get issues by user
-- `POST /api/issues` - Create new issue
-- `POST /api/issues/:id/upvote` - Upvote issue
-- `POST /api/issues/:id/downvote` - Downvote issue
-- `PUT /api/issues/:id/status` - Update issue status
-- `GET /api/issues/votes/:userId` - Get user votes
+### Authority Department Profiles
+All demo authority accounts use the password: `authority123`
 
-## Data Storage
+| Department | Email Login |
+| :--- | :--- |
+| **PWD** | `pwd@kerala.localeyes.com` |
+| **Water Authority** | `water@kerala.localeyes.com` |
+| **KSEB** | `kseb@kerala.localeyes.com` |
+| **Traffic** | `traffic@kerala.localeyes.com` |
+| **Police** | `police@kerala.localeyes.com` |
+| **Healthcare** | `health@kerala.localeyes.com` |
+| **Waste Management** | `waste@kerala.localeyes.com` |
+| **Other** | `other@kerala.localeyes.com` |
 
-- **User credentials**: Stored in PostgreSQL `users` table
-- **Issues**: Stored in PostgreSQL `issues` table with JSONB for location and images
-- **Votes**: Stored in PostgreSQL `user_votes` table
-- **Session**: Stored in browser localStorage
+---
 
-## Development
-
-### Project Structure
-```
-local-concern-watch/
-├── server/                 # Backend API
-│   ├── routes/            # API route handlers
-│   ├── database.js        # Database connection
-│   └── server.js          # Express server
-├── src/                   # Frontend React app
-│   ├── components/        # UI components
-│   ├── pages/            # Page components
-│   ├── lib/              # API client and utilities
-│   └── types/            # TypeScript type definitions
-└── public/               # Static assets
-```
-
-### Database Schema
-
-The application automatically creates the following tables on startup:
-
-- `users` - User accounts and authority credentials
-- `issues` - Community issues with metadata
-- `user_votes` - User voting records
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Database Connection Error**: Verify PostgreSQL is running and credentials are correct
-2. **Port Already in Use**: Change ports in `.env` (backend) or `vite.config.ts` (frontend)
-3. **CORS Issues**: Backend has CORS enabled, but check if frontend URL is correct
-
-### Logs
-
-- Backend logs: Check terminal where `npm run dev:backend` is running
-- Frontend logs: Check browser console and terminal where `npm run dev` is running
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License.
+## 🔒 Security & Data Preservation
+* Passwords are encrypted in the SQLite database using **bcryptjs**.
+* API requests are guarded with **JWT tokens** and local storage sessions.
+* On backend startup, SQLite schemas check for existing columns (like `credibility` and `images`), modifying them safely without wiping your local seed data.
