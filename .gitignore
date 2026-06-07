@@ -37,3 +37,4 @@ server.log
 
 # Nested loops
 local-concern-watch/
+.vercel
