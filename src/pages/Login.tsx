@@ -61,36 +61,47 @@ export default function Login() {
       <div className="w-full max-w-6xl">
         <Card className="shadow-xl border-0 bg-white overflow-hidden">
           <div className="grid lg:grid-cols-2 min-h-[600px]">
-            {/* Left Section - Logo & Branding */}
-            <div className="bg-gradient-to-br from-[#0D1B3E] to-[#1a2f6e] p-12 flex items-center justify-center">
+            {/* Left Section - Illustration */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-12 flex items-center justify-center">
               <div className="text-center">
-                {/* Logo */}
-                <div className="flex items-center justify-center mb-6">
-                  <img
-                    src="/logo.png"
-                    alt="LocalEyes Logo"
-                    className="w-48 h-48 object-contain drop-shadow-2xl"
-                  />
-                </div>
-                <h1 className="text-4xl font-bold text-white mb-3 tracking-widest">
-                  LOCAL EYES
+                <h1 className="text-4xl font-bold text-gray-800 mb-4 tracking-wide">
+                  LꙪCAL EYES
                 </h1>
-                <p className="text-lg font-semibold text-blue-200 tracking-[0.25em] mb-10">
+                <p className="text-xl font-semibold text-gray-700 mb-8">
                   SPOT IT. REPORT IT. FIX IT.
                 </p>
-                {/* Stats row */}
-                <div className="grid grid-cols-3 gap-4 mt-4">
-                  <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-                    <p className="text-2xl font-bold text-white">9+</p>
-                    <p className="text-xs text-blue-200 mt-1">Departments</p>
-                  </div>
-                  <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-                    <p className="text-2xl font-bold text-white">24/7</p>
-                    <p className="text-xs text-blue-200 mt-1">Reporting</p>
-                  </div>
-                  <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-                    <p className="text-2xl font-bold text-white">Live</p>
-                    <p className="text-xs text-blue-200 mt-1">Tracking</p>
+                <div className="w-64 h-64 mx-auto bg-white rounded-2xl shadow-lg flex items-center justify-center p-4">
+                  <div className="w-full h-full relative">
+                    {/* City Map Background */}
+                    <div className="w-full h-full bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg relative overflow-hidden">
+                      {/* Grid lines for city blocks */}
+                      <div className="absolute inset-0 opacity-20">
+                        <div className="grid grid-cols-4 grid-rows-4 h-full w-full">
+                          {Array.from({ length: 16 }).map((_, i) => (
+                            <div key={i} className="border border-blue-300"></div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* City buildings/areas */}
+                      <div className="absolute top-2 left-2 w-8 h-6 bg-gray-400 rounded-sm"></div>
+                      <div className="absolute top-2 right-2 w-6 h-8 bg-gray-400 rounded-sm"></div>
+                      <div className="absolute bottom-2 left-2 w-10 h-4 bg-gray-400 rounded-sm"></div>
+                      <div className="absolute bottom-2 right-2 w-7 h-6 bg-gray-400 rounded-sm"></div>
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-gray-400 rounded-sm"></div>
+
+                      {/* Issue markers (red dots) */}
+                      <div className="absolute top-4 left-4 w-3 h-3 bg-red-500 rounded-full shadow-lg animate-pulse"></div>
+                      <div className="absolute top-8 right-6 w-3 h-3 bg-red-500 rounded-full shadow-lg animate-pulse"></div>
+                      <div className="absolute bottom-6 left-6 w-3 h-3 bg-red-500 rounded-full shadow-lg animate-pulse"></div>
+                      <div className="absolute bottom-4 right-4 w-3 h-3 bg-red-500 rounded-full shadow-lg animate-pulse"></div>
+                      <div className="absolute top-1/2 left-1/3 w-3 h-3 bg-red-500 rounded-full shadow-lg animate-pulse"></div>
+                      <div className="absolute top-1/3 right-1/3 w-3 h-3 bg-red-500 rounded-full shadow-lg animate-pulse"></div>
+
+                      {/* Roads/paths */}
+                      <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-300"></div>
+                      <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gray-300"></div>
+                    </div>
                   </div>
                 </div>
               </div>

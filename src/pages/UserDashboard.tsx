@@ -378,10 +378,7 @@ export default function UserDashboard() {
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <img src="/logo.png" alt="LocalEyes" className="w-8 h-8 object-contain" />
-                    <h1 className="text-2xl font-bold text-primary">LOCAL EYES</h1>
-                  </div>
+                  <h1 className="text-2xl font-bold text-primary">LꙪCAL EYES</h1>
                   <p className="text-sm text-muted-foreground">Welcome back, {user?.name || user?.email}</p>
                 </div>
 
@@ -554,7 +551,7 @@ export default function UserDashboard() {
                       <div className="space-y-3">
                         {myIssues.map((issue) => (
                           <div key={issue.id} className="border rounded-lg p-3">
-                             <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center justify-between mb-2">
                               <h4 className="font-medium text-sm">{issue.title}</h4>
                               <Badge className={getStatusColor(issue.status)}>
                                 {getStatusIcon(issue.status)}
