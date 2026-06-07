@@ -378,7 +378,10 @@ export default function UserDashboard() {
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold text-primary">LꙪCAL EYES</h1>
+                  <div className="flex items-center gap-2">
+                    <img src="/logo.png" alt="LocalEyes" className="w-8 h-8 object-contain" />
+                    <h1 className="text-2xl font-bold text-primary">LOCAL EYES</h1>
+                  </div>
                   <p className="text-sm text-muted-foreground">Welcome back, {user?.name || user?.email}</p>
                 </div>
 
