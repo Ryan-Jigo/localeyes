@@ -35,13 +35,14 @@ class AuthService {
   private loginLocal(email: string, password: string): AuthState {
     const normalizedEmail = email.toLowerCase();
     
-    // Check hardcoded authority users
+    // Check hardcoded demo users
     const authorityUsers = {
-      'pwd@kseb.localeyes.com': { password: 'authority123', user: { id: '1', email: 'pwd@kseb.localeyes.com', role: 'authority', department: 'PWD', name: 'PWD Authority' } },
-      'water@kerala.localeyes.com': { password: 'authority123', user: { id: '2', email: 'water@kerala.localeyes.com', role: 'authority', department: 'Water', name: 'Water Authority' } },
-      'kseb@kerala.localeyes.com': { password: 'authority123', user: { id: '3', email: 'kseb@kerala.localeyes.com', role: 'authority', department: 'KSEB', name: 'KSEB Authority' } },
-      'waste@kerala.localeyes.com': { password: 'authority123', user: { id: '4', email: 'waste@kerala.localeyes.com', role: 'authority', department: 'Waste Management', name: 'Waste Management Authority' } },
-      'other@kerala.localeyes.com': { password: 'authority123', user: { id: '5', email: 'other@kerala.localeyes.com', role: 'authority', department: 'Other', name: 'Other Department Authority' } },
+      'citizen@example.com': { password: 'password123', user: { id: '0', email: 'citizen@example.com', role: 'user' as const, name: 'Demo Citizen' } },
+      'pwd@kseb.localeyes.com': { password: 'authority123', user: { id: '1', email: 'pwd@kseb.localeyes.com', role: 'authority' as const, department: 'PWD', name: 'PWD Authority' } },
+      'water@kerala.localeyes.com': { password: 'authority123', user: { id: '2', email: 'water@kerala.localeyes.com', role: 'authority' as const, department: 'Water', name: 'Water Authority' } },
+      'kseb@kerala.localeyes.com': { password: 'authority123', user: { id: '3', email: 'kseb@kerala.localeyes.com', role: 'authority' as const, department: 'KSEB', name: 'KSEB Authority' } },
+      'waste@kerala.localeyes.com': { password: 'authority123', user: { id: '4', email: 'waste@kerala.localeyes.com', role: 'authority' as const, department: 'Waste Management', name: 'Waste Management Authority' } },
+      'other@kerala.localeyes.com': { password: 'authority123', user: { id: '5', email: 'other@kerala.localeyes.com', role: 'authority' as const, department: 'Other', name: 'Other Department Authority' } },
     };
 
     let userData = authorityUsers[normalizedEmail];
