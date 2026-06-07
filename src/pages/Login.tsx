@@ -4,7 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
-import { Eye, EyeOff, Shield, Users } from 'lucide-react';
+import { Eye, EyeOff, Shield, Users, Flame, Activity, TrafficCone, Wrench, Droplet } from 'lucide-react';
+import Logo from '../components/Logo';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -57,24 +58,24 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-6xl">
-        <Card className="shadow-xl border-0 bg-white overflow-hidden">
+        <Card className="shadow-xl border border-border bg-card overflow-hidden">
           <div className="grid lg:grid-cols-2 min-h-[600px]">
-            {/* Left Section - Illustration */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-12 flex items-center justify-center">
-              <div className="text-center">
-                <h1 className="text-4xl font-bold text-gray-800 mb-4 tracking-wide">
-                  LꙪCAL EYES
-                </h1>
-                <p className="text-xl font-semibold text-gray-700 mb-8">
-                  SPOT IT. REPORT IT. FIX IT.
-                </p>
-                <div className="w-64 h-64 mx-auto bg-white rounded-2xl shadow-lg flex items-center justify-center p-4">
+            {/* Left Section - Logo */}
+            <div className="bg-muted/30 p-12 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-border">
+              <div className="text-center flex flex-col items-center">
+                <div className="w-64 h-64 flex items-center justify-center mb-6">
                   <div className="w-full h-full relative flex items-center justify-center">
-                    <img src="/image.png" alt="LocalEyes Logo" className="max-w-full max-h-full object-contain drop-shadow-xl" />
+                    <Logo size={256} hideText={true} light={true} />
                   </div>
                 </div>
+                <h1 className="text-4xl font-bold text-foreground mb-4 tracking-wide">
+                  LꙪCAL EYES
+                </h1>
+                <p className="text-xl font-semibold text-muted-foreground">
+                  SPOT IT. REPORT IT. FIX IT.
+                </p>
               </div>
             </div>
 
@@ -82,14 +83,14 @@ export default function Login() {
             <div className="p-12 flex flex-col justify-center">
               <div className="max-w-md mx-auto w-full">
                 <div className="text-center mb-8">
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-                  <p className="text-gray-600">
+                  <h2 className="text-3xl font-bold text-card-foreground mb-2">Welcome Back</h2>
+                  <p className="text-muted-foreground">
                     Sign in to report issues or manage community requests
                   </p>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-2">
-                    <label htmlFor="login-email" className="text-sm font-medium text-gray-700">Email Address</label>
+                    <label htmlFor="login-email" className="text-sm font-medium text-foreground">Email Address</label>
                     <Input
                       id="login-email"
                       type="email"
@@ -97,11 +98,11 @@ export default function Login() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      className="h-12"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label htmlFor="login-password" className="text-sm font-medium text-gray-700">Password</label>
+                    <label htmlFor="login-password" className="text-sm font-medium text-foreground">Password</label>
                     <div className="relative">
                       <Input
                         id="login-password"
@@ -110,12 +111,12 @@ export default function Login() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        className="h-12 pr-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        className="h-12 pr-10"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         aria-label={showPassword ? 'Hide password' : 'Show password'}
                       >
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -124,7 +125,7 @@ export default function Login() {
                   </div>
 
                   {error && (
-                    <div className="text-sm text-red-600 text-center bg-red-50 p-3 rounded-md">
+                    <div className="text-sm text-destructive text-center bg-destructive/10 p-3 rounded-md border border-destructive/20">
                       {error}
                     </div>
                   )}
@@ -132,7 +133,7 @@ export default function Login() {
                   <Button
                     id="login-submit"
                     type="submit"
-                    className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                    className="w-full h-12 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg"
                     disabled={isLoading}
                   >
                     {isLoading ? 'Signing In...' : 'Log In'}
@@ -145,72 +146,104 @@ export default function Login() {
                 </div>
 
                 <div className="mt-8">
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-300"></div>
+                  <div className="relative mb-6">
+                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                      <div className="w-full border-t border-border"></div>
                     </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-2 text-gray-500">Demo Accounts</span>
+                    <div className="relative flex justify-center text-[10px] uppercase tracking-[0.2em]">
+                      <span className="bg-card px-3 text-muted-foreground">Demo Accounts</span>
                     </div>
                   </div>
 
-                  <div className="mt-6 grid grid-cols-2 gap-3">
-                    <Button
-                      id="demo-citizen"
-                      type="button"
-                      variant="outline"
-                      onClick={() => fillDemoCredentials('citizen')}
-                      className="col-span-2 h-auto p-4 flex items-center justify-center gap-3 border-blue-200 bg-blue-50 hover:border-blue-500 hover:bg-blue-100 transition-transform duration-200 hover:scale-[1.02]"
-                    >
-                      <Users className="h-5 w-5 text-blue-600" />
-                      <div className="text-left">
-                        <div className="font-medium text-gray-900">Citizen Profile</div>
-                        <div className="text-xs text-gray-500">Test as a local citizen</div>
-                      </div>
-                    </Button>
+                  {/* CITIZEN PROFILE BUTTON */}
+                  <button
+                    onClick={() => fillDemoCredentials('citizen')}
+                    type="button"
+                    className="w-full mb-3 p-3 bg-muted/30 hover:bg-muted/60 border border-border transition-all flex items-center gap-4 text-left group cursor-pointer rounded-lg"
+                    id="demo-citizen-btn"
+                  >
+                    <div className="w-8 h-8 bg-muted text-muted-foreground flex items-center justify-center rounded-md group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                      <Users size={16} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium tracking-wide text-foreground">Citizen Profile</p>
+                      <p className="text-xs text-muted-foreground transition-colors">Test as a local citizen</p>
+                    </div>
+                  </button>
 
-                    <Button
-                      type="button" variant="outline" onClick={() => fillDemoCredentials('authority', 'Police')}
-                      className="h-auto py-3 px-2 flex flex-col items-center justify-center gap-1 border-blue-200 bg-blue-50 hover:border-blue-400 hover:bg-blue-100 transition-transform duration-200 hover:scale-105"
+                  {/* AGENCIES GRID CONTAINER */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {/* Police */}
+                    <button
+                      type="button"
+                      onClick={() => fillDemoCredentials('authority', 'Police')}
+                      className="p-3 bg-muted/30 hover:bg-muted/60 border border-border transition-all flex flex-col items-center justify-center cursor-pointer rounded-lg group"
                     >
-                      <Shield className="h-4 w-4 text-blue-600" />
-                      <span className="text-xs font-medium text-gray-900">Police</span>
-                    </Button>
-                    <Button
-                      type="button" variant="outline" onClick={() => fillDemoCredentials('authority', 'Fire Department')}
-                      className="h-auto py-3 px-2 flex flex-col items-center justify-center gap-1 border-blue-200 bg-blue-50 hover:border-blue-400 hover:bg-blue-100 transition-transform duration-200 hover:scale-105"
+                      <div className="w-8 h-8 rounded-md bg-muted text-muted-foreground flex items-center justify-center mb-2 group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                        <Shield size={14} />
+                      </div>
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground group-hover:text-foreground">Police</span>
+                    </button>
+
+                    {/* Fire Dept */}
+                    <button
+                      type="button"
+                      onClick={() => fillDemoCredentials('authority', 'Fire Department')}
+                      className="p-3 bg-muted/30 hover:bg-muted/60 border border-border transition-all flex flex-col items-center justify-center cursor-pointer rounded-lg group"
                     >
-                      <Shield className="h-4 w-4 text-red-600" />
-                      <span className="text-xs font-medium text-gray-900">Fire Dept</span>
-                    </Button>
-                    <Button
-                      type="button" variant="outline" onClick={() => fillDemoCredentials('authority', 'Ambulance/Healthcare')}
-                      className="h-auto py-3 px-2 flex flex-col items-center justify-center gap-1 border-blue-200 bg-blue-50 hover:border-blue-400 hover:bg-blue-100 transition-transform duration-200 hover:scale-105"
+                      <div className="w-8 h-8 rounded-md bg-muted text-muted-foreground flex items-center justify-center mb-2 group-hover:bg-red-500/10 group-hover:text-red-500 transition-all">
+                        <Flame size={14} />
+                      </div>
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground group-hover:text-foreground">Fire Dept</span>
+                    </button>
+
+                    {/* Healthcare */}
+                    <button
+                      type="button"
+                      onClick={() => fillDemoCredentials('authority', 'Ambulance/Healthcare')}
+                      className="p-3 bg-muted/30 hover:bg-muted/60 border border-border transition-all flex flex-col items-center justify-center cursor-pointer rounded-lg group"
                     >
-                      <Shield className="h-4 w-4 text-green-600" />
-                      <span className="text-xs font-medium text-gray-900">Healthcare</span>
-                    </Button>
-                    <Button
-                      type="button" variant="outline" onClick={() => fillDemoCredentials('authority', 'Traffic')}
-                      className="h-auto py-3 px-2 flex flex-col items-center justify-center gap-1 border-blue-200 bg-blue-50 hover:border-blue-400 hover:bg-blue-100 transition-transform duration-200 hover:scale-105"
+                      <div className="w-8 h-8 rounded-md bg-muted text-muted-foreground flex items-center justify-center mb-2 group-hover:bg-green-500/10 group-hover:text-green-500 transition-all">
+                        <Activity size={14} />
+                      </div>
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground group-hover:text-foreground">Healthcare</span>
+                    </button>
+
+                    {/* Traffic */}
+                    <button
+                      type="button"
+                      onClick={() => fillDemoCredentials('authority', 'Traffic')}
+                      className="p-3 bg-muted/30 hover:bg-muted/60 border border-border transition-all flex flex-col items-center justify-center cursor-pointer rounded-lg group"
                     >
-                      <Shield className="h-4 w-4 text-yellow-600" />
-                      <span className="text-xs font-medium text-gray-900">Traffic</span>
-                    </Button>
-                    <Button
-                      type="button" variant="outline" onClick={() => fillDemoCredentials('authority', 'PWD')}
-                      className="h-auto py-3 px-2 flex flex-col items-center justify-center gap-1 border-blue-200 bg-blue-50 hover:border-blue-400 hover:bg-blue-100 transition-transform duration-200 hover:scale-105"
+                      <div className="w-8 h-8 rounded-md bg-muted text-muted-foreground flex items-center justify-center mb-2 group-hover:bg-yellow-500/10 group-hover:text-yellow-500 transition-all">
+                        <TrafficCone size={14} />
+                      </div>
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground group-hover:text-foreground">Traffic</span>
+                    </button>
+
+                    {/* PWD */}
+                    <button
+                      type="button"
+                      onClick={() => fillDemoCredentials('authority', 'PWD')}
+                      className="p-3 bg-muted/30 hover:bg-muted/60 border border-border transition-all flex flex-col items-center justify-center cursor-pointer rounded-lg group"
                     >
-                      <Shield className="h-4 w-4 text-gray-600" />
-                      <span className="text-xs font-medium text-gray-900">PWD</span>
-                    </Button>
-                    <Button
-                      type="button" variant="outline" onClick={() => fillDemoCredentials('authority', 'Water')}
-                      className="h-auto py-3 px-2 flex flex-col items-center justify-center gap-1 border-blue-200 bg-blue-50 hover:border-blue-400 hover:bg-blue-100 transition-transform duration-200 hover:scale-105"
+                      <div className="w-8 h-8 rounded-md bg-muted text-muted-foreground flex items-center justify-center mb-2 group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                        <Wrench size={14} />
+                      </div>
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground group-hover:text-foreground">PWD</span>
+                    </button>
+
+                    {/* Water */}
+                    <button
+                      type="button"
+                      onClick={() => fillDemoCredentials('authority', 'Water')}
+                      className="p-3 bg-muted/30 hover:bg-muted/60 border border-border transition-all flex flex-col items-center justify-center cursor-pointer rounded-lg group"
                     >
-                      <Shield className="h-4 w-4 text-blue-400" />
-                      <span className="text-xs font-medium text-gray-900">Water</span>
-                    </Button>
+                      <div className="w-8 h-8 rounded-md bg-muted text-muted-foreground flex items-center justify-center mb-2 group-hover:bg-blue-500/10 group-hover:text-blue-500 transition-all">
+                        <Droplet size={14} />
+                      </div>
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground group-hover:text-foreground">Water</span>
+                    </button>
                   </div>
                 </div>
               </div>
