@@ -45,10 +45,10 @@ export default function Login() {
       Water: 'water@kerala.localeyes.com',
       KSEB: 'kseb@kerala.localeyes.com',
       'Waste Management': 'waste@kerala.localeyes.com',
-      Traffic: 'other@kerala.localeyes.com',
-      'Fire Department': 'other@kerala.localeyes.com',
-      Police: 'other@kerala.localeyes.com',
-      'Ambulance/Healthcare': 'other@kerala.localeyes.com',
+      Traffic: 'traffic@kerala.localeyes.com',
+      'Fire Department': 'fire@kerala.localeyes.com',
+      Police: 'police@kerala.localeyes.com',
+      'Ambulance/Healthcare': 'health@kerala.localeyes.com',
       Other: 'other@kerala.localeyes.com',
     };
     const selectedEmail = department ? emailByDept[department] : emailByDept.PWD;

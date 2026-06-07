@@ -42,7 +42,11 @@ class AuthService {
       'water@kerala.localeyes.com': { password: 'authority123', user: { id: '2', email: 'water@kerala.localeyes.com', role: 'authority' as const, department: 'Water', name: 'Water Authority' } },
       'kseb@kerala.localeyes.com': { password: 'authority123', user: { id: '3', email: 'kseb@kerala.localeyes.com', role: 'authority' as const, department: 'KSEB', name: 'KSEB Authority' } },
       'waste@kerala.localeyes.com': { password: 'authority123', user: { id: '4', email: 'waste@kerala.localeyes.com', role: 'authority' as const, department: 'Waste Management', name: 'Waste Management Authority' } },
-      'other@kerala.localeyes.com': { password: 'authority123', user: { id: '5', email: 'other@kerala.localeyes.com', role: 'authority' as const, department: 'Other', name: 'Other Department Authority' } },
+      'traffic@kerala.localeyes.com': { password: 'authority123', user: { id: '5', email: 'traffic@kerala.localeyes.com', role: 'authority' as const, department: 'Traffic', name: 'Traffic Authority' } },
+      'fire@kerala.localeyes.com': { password: 'authority123', user: { id: '6', email: 'fire@kerala.localeyes.com', role: 'authority' as const, department: 'Fire Department', name: 'Fire Department Authority' } },
+      'police@kerala.localeyes.com': { password: 'authority123', user: { id: '7', email: 'police@kerala.localeyes.com', role: 'authority' as const, department: 'Police', name: 'Police Authority' } },
+      'health@kerala.localeyes.com': { password: 'authority123', user: { id: '8', email: 'health@kerala.localeyes.com', role: 'authority' as const, department: 'Ambulance/Healthcare', name: 'Healthcare Authority' } },
+      'other@kerala.localeyes.com': { password: 'authority123', user: { id: '9', email: 'other@kerala.localeyes.com', role: 'authority' as const, department: 'Other', name: 'Other Department Authority' } },
     };
 
     let userData = authorityUsers[normalizedEmail];

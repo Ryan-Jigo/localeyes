@@ -81,6 +81,10 @@ async function initializeDatabase() {
       { email: 'water@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'Water', name: 'Water Authority' },
       { email: 'kseb@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'KSEB', name: 'KSEB Authority' },
       { email: 'waste@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'Waste Management', name: 'Waste Management Authority' },
+      { email: 'traffic@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'Traffic', name: 'Traffic Authority' },
+      { email: 'fire@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'Fire Department', name: 'Fire Department Authority' },
+      { email: 'police@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'Police', name: 'Police Authority' },
+      { email: 'health@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'Ambulance/Healthcare', name: 'Healthcare Authority' },
       { email: 'other@kerala.localeyes.com', password: 'authority123', role: 'authority', department: 'Other', name: 'Other Department Authority' },
     ];
 
