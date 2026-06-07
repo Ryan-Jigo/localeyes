@@ -71,37 +71,8 @@ export default function Login() {
                   SPOT IT. REPORT IT. FIX IT.
                 </p>
                 <div className="w-64 h-64 mx-auto bg-white rounded-2xl shadow-lg flex items-center justify-center p-4">
-                  <div className="w-full h-full relative">
-                    {/* City Map Background */}
-                    <div className="w-full h-full bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg relative overflow-hidden">
-                      {/* Grid lines for city blocks */}
-                      <div className="absolute inset-0 opacity-20">
-                        <div className="grid grid-cols-4 grid-rows-4 h-full w-full">
-                          {Array.from({ length: 16 }).map((_, i) => (
-                            <div key={i} className="border border-blue-300"></div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* City buildings/areas */}
-                      <div className="absolute top-2 left-2 w-8 h-6 bg-gray-400 rounded-sm"></div>
-                      <div className="absolute top-2 right-2 w-6 h-8 bg-gray-400 rounded-sm"></div>
-                      <div className="absolute bottom-2 left-2 w-10 h-4 bg-gray-400 rounded-sm"></div>
-                      <div className="absolute bottom-2 right-2 w-7 h-6 bg-gray-400 rounded-sm"></div>
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-gray-400 rounded-sm"></div>
-
-                      {/* Issue markers (red dots) */}
-                      <div className="absolute top-4 left-4 w-3 h-3 bg-red-500 rounded-full shadow-lg animate-pulse"></div>
-                      <div className="absolute top-8 right-6 w-3 h-3 bg-red-500 rounded-full shadow-lg animate-pulse"></div>
-                      <div className="absolute bottom-6 left-6 w-3 h-3 bg-red-500 rounded-full shadow-lg animate-pulse"></div>
-                      <div className="absolute bottom-4 right-4 w-3 h-3 bg-red-500 rounded-full shadow-lg animate-pulse"></div>
-                      <div className="absolute top-1/2 left-1/3 w-3 h-3 bg-red-500 rounded-full shadow-lg animate-pulse"></div>
-                      <div className="absolute top-1/3 right-1/3 w-3 h-3 bg-red-500 rounded-full shadow-lg animate-pulse"></div>
-
-                      {/* Roads/paths */}
-                      <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-300"></div>
-                      <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gray-300"></div>
-                    </div>
+                  <div className="w-full h-full relative flex items-center justify-center">
+                    <img src="/image.png" alt="LocalEyes Logo" className="max-w-full max-h-full object-contain drop-shadow-xl" />
                   </div>
                 </div>
               </div>

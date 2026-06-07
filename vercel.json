@@ -1,4 +1,8 @@
 {
+  "alias": [
+    "localeyes-app.vercel.app",
+    "localeyes-kerala.vercel.app"
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
