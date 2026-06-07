@@ -175,3 +175,16 @@
     box-shadow: var(--shadow-success);
   }
 }
+
+@keyframes slide-dots {
+  0% { transform: translateX(-100vw); animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+  50% { transform: translateX(0); animation-timing-function: cubic-bezier(0.8, 0.2, 0.8, 1); }
+  100% { transform: translateX(100vw); }
+}
+
+.animate-slide-dots {
+  animation: slide-dots 2.5s infinite;
+}
+.animation-delay-150 { animation-delay: 150ms; }
+.animation-delay-300 { animation-delay: 300ms; }
+

@@ -142,10 +142,11 @@ export default function AuthorityDashboard() {
     <div className="min-h-screen bg-background">
       {/* Loading State */}
       {isLoading && (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-lg">Loading dashboard...</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-md overflow-hidden">
+          <div className="flex items-center space-x-6">
+            <div className="w-5 h-5 bg-primary rounded-full animate-slide-dots"></div>
+            <div className="w-5 h-5 bg-primary rounded-full animate-slide-dots animation-delay-150"></div>
+            <div className="w-5 h-5 bg-primary rounded-full animate-slide-dots animation-delay-300"></div>
           </div>
         </div>
       )}
